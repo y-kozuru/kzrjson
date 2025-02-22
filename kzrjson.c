@@ -86,7 +86,7 @@ static const char *token_type_to_string(const token_type type) {
 static struct {
 	token_type type;
 	char *string;
-} current_token, prev_token;
+} current_token;
 
 static struct {
 	const char *text;
@@ -106,12 +106,7 @@ static bool end_of_text() {
 	return *lexer.pos == '\0';
 }
 
-static void set_prev() {
-	prev_token = current_token;
-}
-
 static token_type set_token(token_type type, const char *string, const size_t length) {
-	set_prev();
 	current_token.type = type;
 	current_token.string = calloc(length + 1, sizeof(char));
 	if (strcpy_s(current_token.string, (length + 1) * sizeof(char), string) != 0) {
@@ -122,14 +117,12 @@ static token_type set_token(token_type type, const char *string, const size_t le
 }
 
 static token_type set_token_const(token_type type, const char *string) {
-	set_prev();
 	current_token.type = type;
 	current_token.string = (char *)string;
 	return type;
 }
 
 static token_type set_token_char(token_type type, const char c) {
-	set_prev();
 	current_token.type = type;
 	current_token.string = calloc(2, sizeof(char));
 	*current_token.string = c;
@@ -137,17 +130,9 @@ static token_type set_token_char(token_type type, const char c) {
 }
 
 static token_type set_token_eot() {
-	set_prev();
 	current_token.type = token_type_end_of_text;
 	current_token.string = NULL;
 	return token_type_end_of_text;
-}
-
-static token_type set_token_error() {
-	set_prev();
-	current_token.type = token_type_lexer_error;
-	current_token.string = NULL;
-	return token_type_lexer_error;
 }
 
 static bool consume_if(const char c) {
@@ -374,13 +359,6 @@ static void current_must(const token_type type) {
 	}
 }
 
-static void get_must(const token_type type) {
-	if (get_token() != type) {
-		fprintf(stderr, "get must %s but %s %s\n", token_type_to_string(type), token_type_to_string(current_token.type), current_token.string);
-		exit(1);
-	}
-}
-
 static json_data_inner parse_json_text() {
 	get_token();
 	return parse_value();
@@ -443,7 +421,8 @@ static json_data_inner parse_array() {
 static json_data_inner parse_member() {
 	current_must(token_type_string);
 	json_data_inner member = make_member(current_token.string);
-	get_must(token_type_name_separator);
+	get_token();
+	current_must(token_type_name_separator);
 	get_token();
 	add_value(member, parse_value());
 	return member;

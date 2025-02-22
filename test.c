@@ -42,7 +42,6 @@ static const char *sample2 = "\
 
 int main(void) {
 	const char *test_text = sample1;
-	//print_tokens(test_text);
 	json_data data = parse(test_text);
 	print_json(data);
 	return 0;
