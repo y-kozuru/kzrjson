@@ -1,8 +1,8 @@
 # kzrjson
-C言語で書いたJSONライブラリ。
+JSON library for C.
 
 # todo
-* JSONオブジェクトを構築する機能を作る
+* Create a function to build a JSON object.
 
 # sample
 ```c
@@ -45,7 +45,7 @@ int main(void) {
 		// => "116", "943", "234", "38793"
 	}
 
-	// dataから取得した他のkzrjson_t（objectやmember_titleなど）もすべて開放されます。
+	// The other kzrjson_t (such as object and member_title) obtained from the data will also be released.
 	kzrjson_free(data);
 
 	return 0;
