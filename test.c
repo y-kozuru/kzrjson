@@ -1,4 +1,7 @@
 #include "kzrjson.h"
+#include <assert.h>
+#include <stdio.h>
+#include <string.h>
 
 static const char *sample1 = "\
 {\n \
@@ -40,10 +43,41 @@ static const char *sample2 = "\
 	}\n\
 ]";
 
-int main(void) {
-	const char *test_text = sample1;
-	kzrjson_data data = kzrjson_parse(test_text);
-	kzrjson_print(data);
+void test_sample1(void) {
+	kzrjson_t data = kzrjson_parse(sample1);
+	assert(kzrjson_is_object(data));
+	assert(kzrjson_object_size(data) == 1);
+
+	kzrjson_t member_image = kzrjson_get_member(data, "Image");
+	assert(!kzrjson_error_occured(member_image));
+	assert(kzrjson_is_member(member_image));
+
+	kzrjson_t object = kzrjson_get_value_from_member(member_image);
+	assert(!kzrjson_error_occured(object));
+	assert(kzrjson_is_object(object));
+	assert(kzrjson_object_size(object) == 6);
+
+	kzrjson_t member_title = kzrjson_get_value_from_key(object, "Title");
+	assert(!kzrjson_error_occured(member_title));
+	assert(kzrjson_is_string(member_title));
+	const char *member_title_string = kzrjson_get_string(member_title);
+	assert(strcmp(member_title_string, "View from 15th Floor") == 0);
+
+	const bool member_animated = kzrjson_get_boolean(kzrjson_get_value_from_key(object, "Animated"));
+	assert(member_animated == false);
+
+	kzrjson_t array = kzrjson_get_value_from_key(object, "IDs");
+	const char *ids[] = {"116", "943", "234", "38793"};
+	for (int i = 0; i < kzrjson_array_size(array); i++) {
+		kzrjson_t element = kzrjson_get_element(array, i);
+		assert(strcmp(kzrjson_get_number(element), ids[i]) == 0);
+	}
+
 	kzrjson_free(data);
+}
+
+int main(void) {
+	test_sample1();
+
 	return 0;
 }

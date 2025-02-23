@@ -485,13 +485,6 @@ static void kzrjson_print_inner(kzrjson_data_inner data) {
 	}
 }
 
-// interface
-void kzrjson_print(kzrjson_data data) {
-	indent = 0;
-	kzrjson_print_inner(data.inner);
-	indent = 0;
-}
-
 static void kzrjson_inner_free(kzrjson_data_inner inner) {
 	if (inner == NULL) return;
 	switch (inner->type) {
@@ -516,14 +509,124 @@ static void kzrjson_inner_free(kzrjson_data_inner inner) {
 	}
 }
 
-void kzrjson_free(kzrjson_data data) {
+static kzrjson_t null_data = {
+	.inner = NULL
+};
+
+// interface
+void kzrjson_print(kzrjson_t data) {
+	indent = 0;
+	kzrjson_print_inner(data.inner);
+	indent = 0;
+}
+
+void kzrjson_free(kzrjson_t data) {
 	if (data.inner == NULL) return;
 	kzrjson_inner_free(data.inner);
 }
 
-kzrjson_data kzrjson_parse(const char *json_text) {
-	kzrjson_data result;
+kzrjson_t kzrjson_parse(const char *json_text) {
 	set_lexer(json_text);
-	result.inner = parse_json_text();
-	return result;
+	kzrjson_t data;
+	data.inner = parse_json_text();
+	return data;
+}
+
+bool kzrjson_is_object(kzrjson_t data) {
+	return data.inner->type == json_type_object;
+}
+
+bool kzrjson_is_array(kzrjson_t data) {
+	return data.inner->type == json_type_array;
+}
+
+bool kzrjson_is_string(kzrjson_t data) {
+	return data.inner->type == json_type_string;
+}
+
+bool kzrjson_is_member(kzrjson_t data) {
+	return data.inner->type == json_type_member;
+}
+
+bool kzrjson_is_number(kzrjson_t data) {
+	return data.inner->type == json_type_number;
+}
+
+bool kzrjson_is_boolean(kzrjson_t data) {
+	return data.inner->type == json_type_boolean;
+}
+
+bool kzrjson_is_null(kzrjson_t data) {
+	return data.inner->type == json_type_null;
+}
+
+bool kzrjson_error_occured(kzrjson_t result) {
+	return result.inner == NULL;
+}
+
+size_t kzrjson_object_size(kzrjson_t object) {
+	return kzrjson_is_object(object) ? object.inner->elements_size : 0;
+}
+
+kzrjson_t kzrjson_get_member(kzrjson_t object, const char *key) {
+	if (!kzrjson_is_object(object)) return null_data;
+	for (int i = 0; i < object.inner->elements_size; i++) {
+		kzrjson_data_inner member = *(object.inner->elements + i);
+		if (strcmp(key, member->member_key) == 0) {
+			kzrjson_t data = {
+				.inner = member
+			};
+			return data;
+		}
+	}
+	return null_data;
+}
+
+const char *kzrjson_get_member_key(kzrjson_t member) {
+	if (!kzrjson_is_member(member)) return NULL;
+	return member.inner->member_key;
+}
+
+kzrjson_t kzrjson_get_value_from_member(kzrjson_t member) {
+	if (!kzrjson_is_member(member)) return null_data;
+	kzrjson_t data = {
+		.inner = member.inner->member_value
+	};
+	return data;
+}
+
+kzrjson_t kzrjson_get_value_from_key(kzrjson_t object, const char *key) {
+	if (!kzrjson_is_object(object)) return null_data;
+	kzrjson_t member = kzrjson_get_member(object, key);
+	if (kzrjson_error_occured(member)) return null_data;
+	return kzrjson_get_value_from_member(member);
+}
+
+size_t kzrjson_array_size(kzrjson_t array) {
+	if (!kzrjson_is_array(array)) return 0;
+	return array.inner->elements_size;
+}
+
+kzrjson_t kzrjson_get_element(kzrjson_t array, size_t index) {
+	if (!kzrjson_is_array(array)) return null_data;
+	if (index < 0 || index >= array.inner->elements_size) return null_data;
+	kzrjson_t element = {
+		.inner = *(array.inner->elements + index)
+	};
+	return element;
+}
+
+const char *kzrjson_get_string(kzrjson_t string) {
+	if (!kzrjson_is_string(string)) return NULL;
+	return string.inner->value;
+}
+
+bool kzrjson_get_boolean(kzrjson_t boolean) {
+	if (!kzrjson_is_boolean(boolean)) return false;
+	return strcmp(boolean.inner->value, literal_true) == 0;
+}
+
+const char *kzrjson_get_number(kzrjson_t number) {
+	if (!kzrjson_is_number(number)) return NULL;
+	return number.inner->value;
 }
