@@ -6,6 +6,8 @@ C言語で書いたJSONライブラリ。
 
 # sample
 ```c
+#include "kzrjson.h"
+
 static const char *sample1 = "\
 {\n \
 	\"Image\": {\n\
@@ -45,6 +47,8 @@ int main(void) {
 
 	// dataから取得した他のkzrjson_t（objectやmember_titleなど）もすべて開放されます。
 	kzrjson_free(data);
+
+	return 0;
 }
 
 ```
