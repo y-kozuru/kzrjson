@@ -42,7 +42,7 @@ static const char *sample2 = "\
 
 int main(void) {
 	const char *test_text = sample1;
-	json_data data = kzrjson_parse(test_text);
+	kzrjson_data data = kzrjson_parse(test_text);
 	kzrjson_print(data);
 	kzrjson_free(data);
 	return 0;
