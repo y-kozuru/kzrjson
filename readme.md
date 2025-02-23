@@ -90,3 +90,9 @@ int main(void) {
 }
 
 ```
+
+# todo
+* Correctly handle escape characters in string
+* Get number from exponential notation
+* Add number from exponential notation
+* Add unified error handling
