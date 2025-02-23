@@ -8,11 +8,6 @@ typedef struct {
 	struct kzrjson_inner *inner;
 } kzrjson_t;
 
-typedef struct {
-	const char **keys;
-	size_t size;
-} kzrjson_object_keys;
-
 void kzrjson_print(kzrjson_t data);
 void kzrjson_free(kzrjson_t data);
 kzrjson_t kzrjson_parse(const char *json_text);
@@ -43,5 +38,19 @@ const char *kzrjson_get_number_as_string(kzrjson_t number);
 int64_t kzrjson_get_number_as_integer(kzrjson_t number);
 uint64_t kzrjson_get_number_as_unsigned_integer(kzrjson_t number);
 double kzrjson_get_number_as_double(kzrjson_t number);
+
+kzrjson_t kzrjson_make_object(void);
+kzrjson_t kzrjson_make_array(void);
+void kzrjson_object_add_member(kzrjson_t *object, kzrjson_t member);
+void kzrjson_array_add_element(kzrjson_t *array, kzrjson_t element);
+
+kzrjson_t kzrjson_make_member(const char *key, const size_t length, kzrjson_t value);
+kzrjson_t kzrjson_make_string(const char *string, const size_t length);
+kzrjson_t kzrjson_make_boolean(const bool boolean);
+kzrjson_t kzrjson_make_null();
+
+kzrjson_t kzrjson_make_number_double(const double number);
+kzrjson_t kzrjson_make_number_unsigned_integer(const uint64_t number);
+kzrjson_t kzrjson_make_number_integer(const int64_t number);
 
 #endif // KZRJSON_H

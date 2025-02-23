@@ -1,10 +1,9 @@
 # kzrjson
-JSON library for C.
-
-# todo
-* Create a function to build a JSON object.
+JSON library for C. It can parse JSON text and construct JSON objects in your programs.
 
 # sample
+## Parse JSON text
+
 ```c
 #include "kzrjson.h"
 
@@ -25,7 +24,6 @@ static const char *sample1 = "\
 }\n";
 
 int main(void) {
-
 	kzrjson_t data = kzrjson_parse(sample1);
 	kzrjson_t member_image = kzrjson_get_member(data, "Image");
 
@@ -47,6 +45,46 @@ int main(void) {
 
 	// The other kzrjson_t (such as object and member_title) obtained from the data will also be released.
 	kzrjson_free(data);
+
+	return 0;
+}
+
+```
+
+## Make JSON object
+```c
+#include "kzrjson.h"
+
+int main(void) {
+	// make object
+	kzrjson_t object = kzrjson_make_object();
+
+	// make member
+	kzrjson_t boolean_value = kzrjson_make_boolean(true);
+	kzrjson_t member = kzrjson_make_member("member1", strlen("member1"), boolean_value);
+
+	// add member to object
+	kzrjson_object_add_member(&object, member);
+	// => { "member1": true }
+
+	// make array
+	kzrjson_t array = kzrjson_make_array();
+	kzrjson_array_add_element(&array, kzrjson_make_number_integer(-100));
+	kzrjson_array_add_element(&array, kzrjson_make_number_unsigned_integer(0));
+	kzrjson_array_add_element(&array, kzrjson_make_number_double(0.5));
+	kzrjson_array_add_element(&array, kzrjson_make_string("sample", strlen("sample")));
+	kzrjson_array_add_element(&array, kzrjson_make_null());
+	// => [-100, 0, 0.5, "sample", null]
+
+	kzrjson_object_add_member(&object, kzrjson_make_member("array1", strlen("array1"), array));
+	/* =>
+	 * {
+	 *   "member1": true,
+	 *   "array1": [-100, 0, 0.5, "sample", null]
+	 * }
+	 */
+
+	kzrjson_free(object);
 
 	return 0;
 }

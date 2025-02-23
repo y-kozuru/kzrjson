@@ -94,8 +94,49 @@ static void test_sample2(void) {
 	puts("test_sample2 done");
 }
 
+static void test_make_json(void) {
+	kzrjson_t object = kzrjson_make_object();
+	assert(kzrjson_is_object(object));
+	assert(kzrjson_object_size(object) == 0);
+
+	kzrjson_t value_boolean = kzrjson_make_boolean(true);
+	assert(kzrjson_is_boolean(value_boolean));
+	assert(kzrjson_get_boolean(value_boolean) == true);
+
+	kzrjson_t member = kzrjson_make_member("member1", strlen("member1"), value_boolean);
+	assert(kzrjson_is_member(member));
+	assert(strcmp(kzrjson_get_member_key(member), "member1") == 0);
+	assert(kzrjson_get_boolean(kzrjson_get_value_from_member(member)) == true);
+
+	kzrjson_object_add_member(&object, member);
+	assert(kzrjson_object_size(object) == 1);
+	kzrjson_t value = kzrjson_get_value_from_key(object, "member1");
+	assert(kzrjson_get_boolean(value) == true);
+
+	kzrjson_t array = kzrjson_make_array();
+	assert(kzrjson_is_array(array));
+	assert(kzrjson_array_size(array) == 0);
+	kzrjson_array_add_element(&array, kzrjson_make_number_integer(-100));
+	kzrjson_array_add_element(&array, kzrjson_make_number_unsigned_integer(0));
+	kzrjson_array_add_element(&array, kzrjson_make_number_double(0.5));
+	kzrjson_array_add_element(&array, kzrjson_make_string("sample", strlen("sample")));
+	kzrjson_array_add_element(&array, kzrjson_make_null());
+	assert(kzrjson_array_size(array) == 5);
+	assert(kzrjson_get_number_as_integer(kzrjson_get_element(array, 0)) == -100);
+	assert(kzrjson_get_number_as_unsigned_integer(kzrjson_get_element(array, 1)) == 0);
+	assert(kzrjson_get_number_as_double(kzrjson_get_element(array, 2)) == 0.5);
+	assert(strcmp(kzrjson_get_string(kzrjson_get_element(array, 3)), "sample") == 0);
+	assert(kzrjson_is_null(kzrjson_get_element(array, 4)));
+
+	kzrjson_object_add_member(&object, kzrjson_make_member("array1", strlen("array1"), array));
+
+	kzrjson_free(object);
+	puts("test_make_json done");
+}
+
 int main(void) {
 	test_sample1();
 	test_sample2();
+	test_make_json();
 	return 0;
 }

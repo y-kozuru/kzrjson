@@ -314,8 +314,8 @@ kzrjson_inner make_json_data(const json_type type, char *string) {
 	return data;
 }
 
-kzrjson_inner make_string() {
-	return make_json_data(json_type_string, current_token.string);
+kzrjson_inner make_string(const char *string) {
+	return make_json_data(json_type_string, (char *)string);
 }
 
 kzrjson_inner make_number(char *number, json_number_type type) {
@@ -332,14 +332,14 @@ kzrjson_inner make_number(char *number, json_number_type type) {
 		data->number_double = strtod(data->value, NULL);
 		break;
 	case number_type_exp:
-		// todo: implement
+		// todo: eval exp number
 		break;
 	}
 	return data;
 }
 
-kzrjson_inner make_boolean() {
-	return make_json_data(json_type_boolean, current_token.string);
+kzrjson_inner make_boolean(const bool boolean) {
+	return make_json_data(json_type_boolean, (char *)(boolean ? literal_true : literal_false));
 }
 
 kzrjson_inner make_null() {
@@ -347,15 +347,15 @@ kzrjson_inner make_null() {
 }
 
 kzrjson_inner make_object() {
-	return make_json_data(json_type_object, "");
+	return make_json_data(json_type_object, NULL);
 }
 
 kzrjson_inner make_array() {
-	return make_json_data(json_type_array, "");
+	return make_json_data(json_type_array, NULL);
 }
 
 kzrjson_inner make_member(const char *key) {
-	kzrjson_inner data = make_json_data(json_type_member, "");
+	kzrjson_inner data = make_json_data(json_type_member, NULL);
 	data->member_key = (char *)key;
 	return data;
 }
@@ -384,8 +384,12 @@ static kzrjson_inner parse_json_text() {
 
 // value = false / null / true / string / object / array / number
 static kzrjson_inner parse_value() {
-	if (current_is(token_type_literal_false) || current_is(token_type_literal_true)) {
-		kzrjson_inner data = make_boolean(current_token.string);
+	if (current_is(token_type_literal_false)) {
+		kzrjson_inner data = make_boolean(false);
+		get_token();
+		return data;
+	} else if (current_is(token_type_literal_true)) {
+		kzrjson_inner data = make_boolean(true);
 		get_token();
 		return data;
 	} else if (current_is(token_type_null)) {
@@ -529,23 +533,22 @@ static void kzrjson_inner_free(kzrjson_inner inner) {
 			kzrjson_inner_free(*(inner->elements + i));
 		}
 		free(inner->elements);
-		free(inner);
 		break;
 	case json_type_member:
 		free(inner->member_key);
 		kzrjson_inner_free(inner->member_value);
-		free(inner);
 		break;
 	case json_type_string:
 		free(inner->value);
-		free(inner);
 		break;
 	case json_type_number:
+		free(inner->value);
+		break;
 	case json_type_boolean:
 	case json_type_null:
-		free(inner);
 		break;
 	}
+	free(inner);
 }
 
 static kzrjson_t null_data = {
@@ -683,4 +686,72 @@ uint64_t kzrjson_get_number_as_unsigned_integer(kzrjson_t number) {
 double kzrjson_get_number_as_double(kzrjson_t number) {
 	if (!kzrjson_is_number(number)) return 0;
 	return number.inner->number_double;
+}
+
+kzrjson_t make_kzrjson(kzrjson_inner inner) {
+	kzrjson_t data = {
+		.inner = inner
+	};
+	return data;
+}
+
+kzrjson_t kzrjson_make_object(void) {
+	return make_kzrjson(make_object());
+}
+
+kzrjson_t kzrjson_make_array(void) {
+	return make_kzrjson(make_array());
+}
+
+void kzrjson_object_add_member(kzrjson_t *object, kzrjson_t member) {
+	if (!kzrjson_is_object(*object)) return;
+	add_element(object->inner, member.inner);
+}
+
+void kzrjson_array_add_element(kzrjson_t *array, kzrjson_t element) {
+	if (!kzrjson_is_array(*array)) return;
+	add_element(array->inner, element.inner);
+}
+
+kzrjson_t kzrjson_make_member(const char *key, const size_t length, kzrjson_t value) {
+	char *buffer = calloc(length + 1, sizeof(char));
+	strncpy_s(buffer, length + 1, key, length);
+	kzrjson_t member = make_kzrjson(make_member(buffer));
+	add_value(member.inner, value.inner);
+	return member;
+}
+
+kzrjson_t kzrjson_make_string(const char *string, const size_t length) {
+	char *buffer = calloc(length + 1, sizeof(char));
+	strncpy_s(buffer, length + 1, string, length);
+	return make_kzrjson(make_string(buffer));
+}
+
+kzrjson_t kzrjson_make_boolean(const bool boolean) {
+	return make_kzrjson(make_boolean(boolean));
+}
+
+kzrjson_t kzrjson_make_null() {
+	return make_kzrjson(make_null());
+}
+
+kzrjson_t kzrjson_make_number_double(const double number) {
+	static const size_t double_max_digit = 16;
+	char *buffer = calloc(double_max_digit + 1, sizeof(char));
+	snprintf(buffer, double_max_digit + 1, "%lf", number);
+	return make_kzrjson(make_number(buffer, number_type_double));
+}
+
+kzrjson_t kzrjson_make_number_unsigned_integer(const uint64_t number) {
+	static const size_t uint64_max_digit = 20;
+	char *buffer = calloc(uint64_max_digit + 1, sizeof(char));
+	snprintf(buffer, uint64_max_digit + 1, "%llu", number);
+	return make_kzrjson(make_number(buffer, number_type_unsigned_integer));
+}
+
+kzrjson_t kzrjson_make_number_integer(const int64_t number) {
+	static const size_t int64_t_max_digit = 19;
+	char *buffer = calloc(int64_t_max_digit + 1, sizeof(char));
+	snprintf(buffer, int64_t_max_digit + 1, "%lld", number);
+	return make_kzrjson(make_number(buffer, number_type_integer));
 }
