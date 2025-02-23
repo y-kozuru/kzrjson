@@ -2,9 +2,9 @@
 #define KZRJSON_H
 #include <stdbool.h>
 
-struct kzrjson_data_inner;
+struct kzrjson_inner;
 typedef struct {
-	struct kzrjson_data_inner *inner;
+	struct kzrjson_inner *inner;
 } kzrjson_t;
 
 typedef struct {
@@ -34,7 +34,6 @@ kzrjson_t kzrjson_get_value_from_key(kzrjson_t object, const char *key);
 
 size_t kzrjson_array_size(kzrjson_t array);
 kzrjson_t kzrjson_get_element(kzrjson_t array, size_t index);
-
 
 const char *kzrjson_get_string(kzrjson_t string);
 bool kzrjson_get_boolean(kzrjson_t boolean);
