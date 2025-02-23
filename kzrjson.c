@@ -106,33 +106,20 @@ static bool end_of_text() {
 	return *lexer.pos == '\0';
 }
 
-static token_type set_token(token_type type, const char *string, const size_t length) {
+static token_type set_token(token_type type, char *string) {
 	current_token.type = type;
-	current_token.string = calloc(length + 1, sizeof(char));
-	if (strcpy_s(current_token.string, (length + 1) * sizeof(char), string) != 0) {
-		fprintf_s(stderr, "failed to set_token()\n");
-		exit(1);
-	}
-	return type;
-}
-
-static token_type set_token_const(token_type type, const char *string) {
-	current_token.type = type;
-	current_token.string = (char *)string;
+	current_token.string = string;
 	return type;
 }
 
 static token_type set_token_char(token_type type, const char c) {
-	current_token.type = type;
-	current_token.string = calloc(2, sizeof(char));
-	*current_token.string = c;
-	return type;
+	char *string = calloc(2, sizeof(char));
+	*string = c;
+	return set_token(type, string);
 }
 
 static token_type set_token_eot() {
-	current_token.type = token_type_end_of_text;
-	current_token.string = NULL;
-	return token_type_end_of_text;
+	return set_token(token_type_end_of_text, NULL);
 }
 
 static bool consume_if(const char c) {
@@ -232,11 +219,11 @@ static token_type get_token() {
 		return set_token_string();
 	} else {
 		if (consume_literal(literal_false)) {
-			return set_token_const(token_type_literal_false, literal_false);
+			return set_token(token_type_literal_false, literal_false);
 		} else if (consume_literal(literal_true)) {
-			return set_token_const(token_type_literal_true, literal_true);
+			return set_token(token_type_literal_true, literal_true);
 		} else if (consume_literal(literal_null)) {
-			return set_token_const(token_type_null, literal_null);
+			return set_token(token_type_null, literal_null);
 		} else {
 			fprintf_s(stderr, "failed to tokenize");
 			exit(1);
@@ -455,7 +442,6 @@ static json_data_inner parse_number() {
 	size_t length = lexer.pos - begin - 1;
 	char *number = calloc(length + 1, sizeof(char));
 	strncpy_s(number, length + 1, begin, length);
-	printf("number %s\n", number);
 	return make_number(number);
 }
 
