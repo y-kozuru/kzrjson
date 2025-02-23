@@ -1,5 +1,6 @@
 #include "kzrjson.h"
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -263,6 +264,13 @@ static const char *json_type_to_string(const json_type type) {
 	}
 }
 
+typedef enum {
+	number_type_integer,
+	number_type_unsigned_integer,
+	number_type_double,
+	number_type_exp,
+} json_number_type;
+
 typedef struct kzrjson_inner *kzrjson_inner;
 struct kzrjson_inner {
 	json_type type;
@@ -271,6 +279,13 @@ struct kzrjson_inner {
 	kzrjson_inner member_value; // member
 	char *member_key;
 	char *value; // string number true false null
+
+	json_number_type number_type;
+	union {
+		int64_t number_integer;
+		uint64_t number_unsigned_integer;
+		double number_double;
+	};
 };
 
 static void add_element(kzrjson_inner data, kzrjson_inner element) {
@@ -303,8 +318,24 @@ kzrjson_inner make_string() {
 	return make_json_data(json_type_string, current_token.string);
 }
 
-kzrjson_inner make_number(char *number) {
-	return make_json_data(json_type_number, number);
+kzrjson_inner make_number(char *number, json_number_type type) {
+	kzrjson_inner data = make_json_data(json_type_number, number);
+	data->number_type = type;
+	switch (data->number_type) {
+	case number_type_integer:
+		data->number_integer = strtoll(data->value, NULL, 10);
+		break;
+	case number_type_unsigned_integer:
+		data->number_unsigned_integer = strtoull(data->value, NULL, 10);
+		break;
+	case number_type_double:
+		data->number_double = strtod(data->value, NULL);
+		break;
+	case number_type_exp:
+		// todo: implement
+		break;
+	}
+	return data;
 }
 
 kzrjson_inner make_boolean() {
@@ -419,7 +450,9 @@ static kzrjson_inner parse_member() {
 static kzrjson_inner parse_number() {
 	const char *begin = lexer.pos - 1;
 	token_type token = current_token.type;
+	json_number_type type = number_type_unsigned_integer;
 	if (token == token_type_minus) {
+		type = number_type_integer;
 		token = get_token();
 	}
 
@@ -428,11 +461,13 @@ static kzrjson_inner parse_number() {
 
 	// frac = decimal-point 1*DIGIT
 	if (token == token_type_decimal_point) {
+		type = number_type_double;
 		for (token = get_token(); token == token_type_digit0_9; token = get_token());
 	}
 
 	// exp = e [ minus / plus ] 1*DIGIT
 	if (token == token_type_e) {
+		type = number_type_exp;
 		token = get_token();
 		if (token == token_type_minus || token == token_type_plus) {
 			token = get_token();
@@ -442,7 +477,7 @@ static kzrjson_inner parse_number() {
 	size_t length = lexer.pos - begin - 1;
 	char *number = calloc(length + 1, sizeof(char));
 	strncpy_s(number, length + 1, begin, length);
-	return make_number(number);
+	return make_number(number, type);
 }
 
 static void print_tokens(const char *json_text) {
@@ -490,21 +525,25 @@ static void kzrjson_inner_free(kzrjson_inner inner) {
 	switch (inner->type) {
 	case json_type_array:
 	case json_type_object:
-		free(inner->value);
 		for (int i = 0; i < inner->elements_size; i++) {
 			kzrjson_inner_free(*(inner->elements + i));
 		}
 		free(inner->elements);
+		free(inner);
 		break;
 	case json_type_member:
 		free(inner->member_key);
 		kzrjson_inner_free(inner->member_value);
+		free(inner);
 		break;
 	case json_type_string:
+		free(inner->value);
+		free(inner);
+		break;
 	case json_type_number:
 	case json_type_boolean:
 	case json_type_null:
-		free(inner->member_value);
+		free(inner);
 		break;
 	}
 }
@@ -626,7 +665,22 @@ bool kzrjson_get_boolean(kzrjson_t boolean) {
 	return strcmp(boolean.inner->value, literal_true) == 0;
 }
 
-const char *kzrjson_get_number(kzrjson_t number) {
+const char *kzrjson_get_number_as_string(kzrjson_t number) {
 	if (!kzrjson_is_number(number)) return NULL;
 	return number.inner->value;
+}
+
+int64_t kzrjson_get_number_as_integer(kzrjson_t number) {
+	if (!kzrjson_is_number(number)) return 0;
+	return number.inner->number_integer;
+}
+
+uint64_t kzrjson_get_number_as_unsigned_integer(kzrjson_t number) {
+	if (!kzrjson_is_number(number)) return 0;
+	return number.inner->number_unsigned_integer;
+}
+
+double kzrjson_get_number_as_double(kzrjson_t number) {
+	if (!kzrjson_is_number(number)) return 0;
+	return number.inner->number_double;
 }

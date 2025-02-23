@@ -1,6 +1,7 @@
 #ifndef KZRJSON_H
 #define KZRJSON_H
 #include <stdbool.h>
+#include <stdint.h>
 
 struct kzrjson_inner;
 typedef struct {
@@ -37,6 +38,10 @@ kzrjson_t kzrjson_get_element(kzrjson_t array, size_t index);
 
 const char *kzrjson_get_string(kzrjson_t string);
 bool kzrjson_get_boolean(kzrjson_t boolean);
-const char *kzrjson_get_number(kzrjson_t number);
+
+const char *kzrjson_get_number_as_string(kzrjson_t number);
+int64_t kzrjson_get_number_as_integer(kzrjson_t number);
+uint64_t kzrjson_get_number_as_unsigned_integer(kzrjson_t number);
+double kzrjson_get_number_as_double(kzrjson_t number);
 
 #endif // KZRJSON_H

@@ -3,7 +3,6 @@ JSON library for C.
 
 # todo
 * Create a function to build a JSON object.
-* eval number
 
 # sample
 ```c
@@ -42,8 +41,8 @@ int main(void) {
 	kzrjson_t array = kzrjson_get_value_from_key(object, "IDs");
 	for (int i = 0; i < kzrjson_array_size(array); i++) {
 		kzrjson_t element = kzrjson_get_element(array, i);
-		const char *number = kzrjson_get_number(element);
-		// => "116", "943", "234", "38793"
+		const uint64_t number = kzrjson_get_number_as_unsigned_integer(element);
+		// => 116, 943, 234, 38793
 	}
 
 	// The other kzrjson_t (such as object and member_title) obtained from the data will also be released.
