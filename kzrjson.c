@@ -486,13 +486,36 @@ static void print_json_inner(json_data_inner data) {
 }
 
 // interface
-void print_json(json_data data) {
+void kzrjson_print(json_data data) {
 	indent = 0;
 	print_json_inner(data.data);
 	indent = 0;
 }
 
-json_data parse(const char *json_text) {
+void kzrjson_free(json_data *j) {
+	if (j->data == NULL) return;
+	switch (j->data->type) {
+	case json_type_array:
+	case json_type_object:
+		free(j->data->value);
+		for (int i = 0; i < j->data->elements_size; i++) {
+			json_data_free(j->data->elements + i);
+		}
+		break;
+	case json_type_member:
+		free(j->data->member_key);
+		json_data_free(j->data->member_value);
+		break;
+	case json_type_string:
+	case json_type_number:
+	case json_type_boolean:
+	case json_type_null:
+		free(j->data->member_value);
+		break;
+	}
+}
+
+json_data kzrjson_parse(const char *json_text) {
 	json_data result;
 	set_lexer(json_text);
 	result.data = parse_json_text();

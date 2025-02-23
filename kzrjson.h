@@ -6,7 +6,8 @@ typedef struct json_data {
 	struct json_data_inner *data;
 } json_data;
 
-void print_json(json_data data);
-json_data parse(const char *json_text);
+void kzrjson_print(json_data data);
+void kzrjson_free(json_data data);
+json_data kzrjson_parse(const char *json_text);
 
 #endif // KZRJSON_H
