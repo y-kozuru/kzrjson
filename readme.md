@@ -3,6 +3,7 @@ JSON library for C.
 
 # todo
 * Create a function to build a JSON object.
+* eval number
 
 # sample
 ```c
