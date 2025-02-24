@@ -94,3 +94,5 @@ int main(void) {
 # todo
 * Correctly handle escape characters in string
 * Add unified error handling
+	* Implement kzrjson_exception_what.
+	* Correctly throw exceptions from all functions.

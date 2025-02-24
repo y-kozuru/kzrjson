@@ -26,16 +26,16 @@ static void test_parse_sample1(void) {
 	assert(kzrjson_object_size(data) == 1);
 
 	kzrjson_t member_image = kzrjson_get_member(data, "Image");
-	assert(!kzrjson_error_occured(member_image));
+	assert(!kzrjson_exception_occured(member_image));
 	assert(kzrjson_is_member(member_image));
 
 	kzrjson_t object = kzrjson_get_value_from_member(member_image);
-	assert(!kzrjson_error_occured(object));
+	assert(!kzrjson_exception_occured(object));
 	assert(kzrjson_is_object(object));
 	assert(kzrjson_object_size(object) == 6);
 
 	kzrjson_t member_title = kzrjson_get_value_from_key(object, "Title");
-	assert(!kzrjson_error_occured(member_title));
+	assert(!kzrjson_exception_occured(member_title));
 	assert(kzrjson_is_string(member_title));
 	const char *member_title_string = kzrjson_get_string(member_title);
 	assert(strcmp(member_title_string, "View from 15th Floor") == 0);
