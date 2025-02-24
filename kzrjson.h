@@ -8,6 +8,11 @@ typedef struct {
 	struct kzrjson_inner *inner;
 } kzrjson_t;
 
+typedef struct {
+	char *text;
+	size_t length;
+} kzrjson_text_t;
+
 void kzrjson_print(kzrjson_t data);
 void kzrjson_free(kzrjson_t data);
 kzrjson_t kzrjson_parse(const char *json_text);
@@ -52,5 +57,7 @@ kzrjson_t kzrjson_make_null();
 kzrjson_t kzrjson_make_number_double(const double number);
 kzrjson_t kzrjson_make_number_unsigned_integer(const uint64_t number);
 kzrjson_t kzrjson_make_number_integer(const int64_t number);
+
+kzrjson_text_t kzrjson_to_string(kzrjson_t data);
 
 #endif // KZRJSON_H

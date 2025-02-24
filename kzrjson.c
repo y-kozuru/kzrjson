@@ -755,3 +755,128 @@ kzrjson_t kzrjson_make_number_integer(const int64_t number) {
 	snprintf(buffer, int64_t_max_digit + 1, "%lld", number);
 	return make_kzrjson(make_number(buffer, number_type_integer));
 }
+
+static struct {
+	size_t length;
+	char *begin;
+	char *pos;
+} g_converter;
+
+static size_t kzrjson_inner_length(kzrjson_inner inner) {
+	switch (inner->type) {
+	case json_type_object:
+		g_converter.length++; // begin-object
+		for (int i = 0; i < inner->elements_size; i++) {
+			kzrjson_inner_length(*(inner->elements + i));
+			if (i + 1 != inner->elements_size) {
+				g_converter.length++; // value-separator
+			}
+		}
+		g_converter.length++; // end-object
+		break;
+	case json_type_array:
+		g_converter.length++; // begin-array
+		for (int i = 0; i < inner->elements_size; i++) {
+			kzrjson_inner_length(*(inner->elements + i));
+			if (i + 1 != inner->elements_size) {
+				g_converter.length++; // value-separator
+			}
+		}
+		g_converter.length++; // end-array
+		break;
+	case json_type_member:
+		g_converter.length++; // quatation-mark
+		g_converter.length += strlen(inner->member_key);
+		g_converter.length++; // quatation-mark
+		g_converter.length++; // name-separator
+		kzrjson_inner_length(inner->member_value);
+		break;
+	case json_type_string:
+		g_converter.length++; // quatation-mark
+		g_converter.length += strlen(inner->value);
+		g_converter.length++; // quatation-mark
+		break;
+	case json_type_number:
+		g_converter.length += strlen(inner->value);
+		break;
+	case json_type_boolean:
+		g_converter.length += strlen(inner->value);
+		break;
+	case json_type_null:
+		g_converter.length += strlen(inner->value);
+		break;
+	}
+	return g_converter.length;
+}
+
+static void converter_add_char(const char c) {
+	*g_converter.pos = c;
+	g_converter.pos++;
+}
+
+static void converter_add_string(const char *string) {
+	const size_t remain = g_converter.length - (g_converter.pos - g_converter.begin);
+	strcpy_s(g_converter.pos, remain, string);
+	g_converter.pos += strlen(string);
+}
+
+static void kzrjson_inner_to_string(kzrjson_inner inner) {
+	switch (inner->type) {
+	case json_type_object:
+		converter_add_char(begin_object);
+		for (int i = 0; i < inner->elements_size; i++) {
+			kzrjson_inner_to_string(*(inner->elements + i));
+			if (i + 1 != inner->elements_size) {
+				converter_add_char(value_separator);
+			}
+		}
+		converter_add_char(end_object);
+		break;
+	case json_type_array:
+		converter_add_char(begin_array);
+		for (int i = 0; i < inner->elements_size; i++) {
+			kzrjson_inner_to_string(*(inner->elements + i));
+			if (i + 1 != inner->elements_size) {
+				converter_add_char(value_separator);
+			}
+		}
+		converter_add_char(end_array);
+		break;
+	case json_type_member:
+		converter_add_char(quotation_mark);
+		converter_add_string(inner->member_key);
+		converter_add_char(quotation_mark);
+		converter_add_char(name_separator);
+		kzrjson_inner_to_string(inner->member_value);
+		break;
+	case json_type_string:
+		converter_add_char(quotation_mark);
+		converter_add_string(inner->value);
+		converter_add_char(quotation_mark);
+		break;
+	case json_type_number:
+		converter_add_string(inner->value);
+		break;
+	case json_type_boolean:
+		converter_add_string(inner->value);
+		break;
+	case json_type_null:
+		converter_add_string(inner->value);
+		break;
+	}
+}
+
+kzrjson_text_t kzrjson_to_string(kzrjson_t data) {
+	g_converter.length = 0;
+
+	kzrjson_text_t json;
+	json.length = kzrjson_inner_length(data.inner);
+	g_converter.begin = calloc(g_converter.length + 1, sizeof(char));
+	g_converter.pos = g_converter.begin;
+	kzrjson_inner_to_string(data.inner);
+	json.text = g_converter.begin;
+
+	g_converter.length = 0;
+
+	return json;
+}

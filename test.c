@@ -145,10 +145,21 @@ static void test_make_json(void) {
 	puts("test_make_json done");
 }
 
+static void test_kzrjson_to_string(void) {
+	const char *text = "{\"member1\":100,\"member2\":[100,\"abc\",true],\"object\":{\"member2\":\"string\",\"member3\":null,\"member4\":-4.7}}";
+	kzrjson_t json = kzrjson_parse(text);
+	kzrjson_text_t json_text = kzrjson_to_string(json);
+	assert(json_text.length == strlen(text));
+	assert(strcmp(json_text.text, text) == 0);
+	kzrjson_free(json);
+	puts("test_kzrjson_to_string done");
+}
+
 int main(void) {
 	test_parse_sample1();
 	test_parse_sample2();
 	test_parse_sample3();
 	test_make_json();
+	test_kzrjson_to_string();
 	return 0;
 }
