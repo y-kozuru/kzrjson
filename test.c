@@ -19,7 +19,7 @@ static const char *sample1 = "\
 	}\n \
 }\n";
 
-static void test_sample1(void) {
+static void test_parse_sample1(void) {
 	kzrjson_t data = kzrjson_parse(sample1);
 	assert(kzrjson_is_object(data));
 	assert(kzrjson_object_size(data) == 1);
@@ -50,7 +50,7 @@ static void test_sample1(void) {
 	}
 
 	kzrjson_free(data);
-	puts("test_sample1 done");
+	puts("test_parse_sample1 done");
 }
 
 static const char *sample2 = "\
@@ -77,7 +77,7 @@ static const char *sample2 = "\
 	}\n\
 ]";
 
-static void test_sample2(void) {
+static void test_parse_sample2(void) {
 	kzrjson_t array = kzrjson_parse(sample2);
 
 	kzrjson_t element1 = kzrjson_get_element(array, 0);
@@ -91,7 +91,16 @@ static void test_sample2(void) {
 	assert(strcmp(element2_latitude, "37.371991") == 0);
 
 	kzrjson_free(array);
-	puts("test_sample2 done");
+	puts("test_parse_sample2 done");
+}
+
+static const char *sample3 = "[-1.3e+5, 6e-1]";
+static void test_parse_sample3(void) {
+	kzrjson_t array = kzrjson_parse(sample3);
+	assert(kzrjson_get_number_as_double(kzrjson_get_element(array, 0)) == -130000);
+	assert(kzrjson_get_number_as_double(kzrjson_get_element(array, 1)) == 0.6);
+	kzrjson_free(array);
+	puts("test_parse_sample3 done");
 }
 
 static void test_make_json(void) {
@@ -119,14 +128,16 @@ static void test_make_json(void) {
 	kzrjson_array_add_element(&array, kzrjson_make_number_integer(-100));
 	kzrjson_array_add_element(&array, kzrjson_make_number_unsigned_integer(0));
 	kzrjson_array_add_element(&array, kzrjson_make_number_double(0.5));
+	kzrjson_array_add_element(&array, kzrjson_make_number_double(1.3e5));
 	kzrjson_array_add_element(&array, kzrjson_make_string("sample", strlen("sample")));
 	kzrjson_array_add_element(&array, kzrjson_make_null());
-	assert(kzrjson_array_size(array) == 5);
+	assert(kzrjson_array_size(array) == 6);
 	assert(kzrjson_get_number_as_integer(kzrjson_get_element(array, 0)) == -100);
 	assert(kzrjson_get_number_as_unsigned_integer(kzrjson_get_element(array, 1)) == 0);
 	assert(kzrjson_get_number_as_double(kzrjson_get_element(array, 2)) == 0.5);
-	assert(strcmp(kzrjson_get_string(kzrjson_get_element(array, 3)), "sample") == 0);
-	assert(kzrjson_is_null(kzrjson_get_element(array, 4)));
+	assert(kzrjson_get_number_as_double(kzrjson_get_element(array, 3)) == 1.3e5);
+	assert(strcmp(kzrjson_get_string(kzrjson_get_element(array, 4)), "sample") == 0);
+	assert(kzrjson_is_null(kzrjson_get_element(array, 5)));
 
 	kzrjson_object_add_member(&object, kzrjson_make_member("array1", strlen("array1"), array));
 
@@ -135,8 +146,9 @@ static void test_make_json(void) {
 }
 
 int main(void) {
-	test_sample1();
-	test_sample2();
+	test_parse_sample1();
+	test_parse_sample2();
+	test_parse_sample3();
 	test_make_json();
 	return 0;
 }

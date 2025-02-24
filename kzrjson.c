@@ -329,10 +329,8 @@ kzrjson_inner make_number(char *number, json_number_type type) {
 		data->number_unsigned_integer = strtoull(data->value, NULL, 10);
 		break;
 	case number_type_double:
-		data->number_double = strtod(data->value, NULL);
-		break;
 	case number_type_exp:
-		// todo: eval exp number
+		data->number_double = strtod(data->value, NULL);
 		break;
 	}
 	return data;
