@@ -491,35 +491,59 @@ static void print_tokens(const char *json_text) {
 	}
 }
 
-static int indent = 0;
+static int g_indent = 0;
+static void print_indent(void) {
+	for (int i = 0; i < g_indent; i++) {
+		printf("  "); // 2 space
+	}
+}
 
-static void kzrjson_print_inner(kzrjson_inner data) {
-	if (data == NULL) return;
-	switch (data->type) {
-	case json_type_array: {
-		printf("array: size %zd\n", data->elements_size);
-		for (int i = 0; i < data->elements_size; i++) {
-			kzrjson_print_inner(*(data->elements + i));
+static void kzrjson_inner_print(kzrjson_inner inner) {
+	if (inner == NULL) return;
+	switch (inner->type) {
+	case json_type_object: {
+		printf("%c\n", begin_object);
+		g_indent++;
+		for (int i = 0; i < inner->elements_size; i++) {
+			print_indent();
+			kzrjson_inner_print(*(inner->elements + i));
+			if (i + 1 != inner->elements_size) {
+				printf("%c\n", value_separator);
+			}
 		}
+		puts("");
+		g_indent--;
+		print_indent();
+		printf("%c", end_object);
 		break;
 	}
-	case json_type_object: {
-		printf("object: size %zd\n", data->elements_size);
-		for (int i = 0; i < data->elements_size; i++) {
-			kzrjson_print_inner(*(data->elements + i));
+	case json_type_array: {
+		printf("%c\n", begin_array);
+		g_indent++;
+		for (int i = 0; i < inner->elements_size; i++) {
+			print_indent();
+			kzrjson_inner_print(*(inner->elements + i));
+			if (i + 1 != inner->elements_size) {
+				printf("%c\n", value_separator);
+			}
 		}
+		puts("");
+		g_indent--;
+		print_indent();
+		printf("%c", end_array);
 		break;
 	}
 	case json_type_member:
-		printf("member\n");
-		printf("key: %s\n", data->member_key);
-		kzrjson_print_inner(data->member_value);
+		printf("%c%s%c%c ", quotation_mark, inner->member_key, quotation_mark, name_separator);
+		kzrjson_inner_print(inner->member_value);
 		break;
 	case json_type_string:
+		printf("%c%s%c", quotation_mark, inner->value, quotation_mark);
+		break;
 	case json_type_number:
 	case json_type_boolean:
 	case json_type_null:
-		printf("%s: %s\n", json_type_to_string(data->type), data->value);
+		printf("%s", inner->value);
 		break;
 	}
 }
@@ -557,9 +581,10 @@ static kzrjson_t null_data = {
 
 // interface
 void kzrjson_print(kzrjson_t data) {
-	indent = 0;
-	kzrjson_print_inner(data.inner);
-	indent = 0;
+	g_indent = 0;
+	kzrjson_inner_print(data.inner);
+	printf("\n");
+	g_indent = 0;
 }
 
 void kzrjson_free(kzrjson_t data) {

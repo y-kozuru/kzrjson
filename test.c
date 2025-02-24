@@ -157,11 +157,19 @@ static void test_kzrjson_to_string(void) {
 	puts("test_kzrjson_to_string done");
 }
 
+static void test_kzrjson_print(void) {
+	kzrjson_t json = kzrjson_parse(sample1);
+	kzrjson_print(json);
+	kzrjson_free(json);
+	puts("test_kzrjson_print done");
+}
+
 int main(void) {
 	test_parse_sample1();
 	test_parse_sample2();
 	test_parse_sample3();
 	test_make_json();
 	test_kzrjson_to_string();
+	test_kzrjson_print();
 	return 0;
 }
