@@ -1,6 +1,7 @@
 #include "kzrjson.h"
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 static const char *sample1 = "\
@@ -152,6 +153,7 @@ static void test_kzrjson_to_string(void) {
 	assert(json_text.length == strlen(text));
 	assert(strcmp(json_text.text, text) == 0);
 	kzrjson_free(json);
+	free(json_text.text);
 	puts("test_kzrjson_to_string done");
 }
 
