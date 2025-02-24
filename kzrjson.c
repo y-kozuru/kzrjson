@@ -86,7 +86,8 @@ static const char *token_type_to_string(const token_type type) {
 
 static struct {
 	token_type type;
-	char *string;
+	const char *begin;
+	size_t length;
 } current_token;
 
 static struct {
@@ -107,20 +108,19 @@ static bool end_of_text() {
 	return *lexer.pos == '\0';
 }
 
-static token_type set_token(token_type type, char *string) {
+static token_type set_token(token_type type, const char *begin, const size_t length) {
 	current_token.type = type;
-	current_token.string = string;
+	current_token.begin = begin;
+	current_token.length = length;
 	return type;
 }
 
-static token_type set_token_char(token_type type, const char c) {
-	char *string = calloc(2, sizeof(char));
-	*string = c;
-	return set_token(type, string);
+static token_type set_token_char(token_type type) {
+	return set_token(type, current_token.begin, 1);
 }
 
 static token_type set_token_eot() {
-	return set_token(token_type_end_of_text, NULL);
+	return set_token(token_type_end_of_text, NULL, 0);
 }
 
 static bool consume_if(const char c) {
@@ -167,7 +167,7 @@ static token_type set_token_string() {
 		%x75 4HEXDIG )  ; uXXXX                U+XXXX
 	unescaped = %x20-21 / %x23-5B / %x5D-10FFFF
 	*/
-	const char *start = lexer.pos;
+	const char *begin = lexer.pos;
 	int length = 0;
 	for (; *lexer.pos != quotation_mark; next()) {
 		if (end_of_text()) {
@@ -177,9 +177,7 @@ static token_type set_token_string() {
 		length++;
 	}
 	next(); // consume_if quotation_mark
-	char *string = calloc(length + 1, sizeof(char));
-	strncpy_s(string, (length + 1) * sizeof(char), start, length);
-	return set_token(token_type_string, string);
+	return set_token(token_type_string, begin, length);
 }
 
 // トークンを一つ読み込み、current_tokenにセットし、current_tokenのタイプを返す。
@@ -189,42 +187,42 @@ static token_type get_token() {
 		if (end_of_text()) return set_token_eot();
 	}
 	if (consume_if(begin_array)) {
-		return set_token_char(token_type_begin_array, begin_array);
+		return set_token_char(token_type_begin_array);
 	} else if (consume_if(begin_object)) {
-		return set_token_char(token_type_begin_object, begin_object);
+		return set_token_char(token_type_begin_object);
 	} else if (consume_if(end_array)) {
-		return set_token_char(token_type_end_array, end_array);
+		return set_token_char(token_type_end_array);
 	} else if (consume_if(end_object)) {
-		return set_token_char(token_type_end_object, end_object);
+		return set_token_char(token_type_end_object);
 	} else if (consume_if(name_separator)) {
-		return set_token_char(token_type_name_separator, name_separator);
+		return set_token_char(token_type_name_separator);
 	} else if (consume_if(value_separator)) {
-		return set_token_char(token_type_value_separator, value_separator);
+		return set_token_char(token_type_value_separator);
 	} else if (consume_if(decimal_point)) {
-		return set_token_char(token_type_decimal_point, decimal_point);
+		return set_token_char(token_type_decimal_point);
 	} else if (contained(digit0_9)) {
-		set_token_char(token_type_digit0_9, *lexer.pos);
+		set_token_char(token_type_digit0_9);
 		next();
 		return token_type_digit0_9;
 	} else if (consume_if_contained(e)) {
-		set_token_char(token_type_e, *lexer.pos);
+		set_token_char(token_type_e);
 		next();
 		return token_type_e;
 	} else if (consume_if(minus)) {
-		return set_token_char(token_type_minus, minus);
+		return set_token_char(token_type_minus);
 	} else if (consume_if(plus)) {
-		return set_token_char(token_type_plus, plus);
+		return set_token_char(token_type_plus);
 	} else if (consume_if(escape)) {
-		return set_token_char(token_type_escape, escape);
+		return set_token_char(token_type_escape);
 	} else if (consume_if(quotation_mark)) {
 		return set_token_string();
 	} else {
 		if (consume_literal(literal_false)) {
-			return set_token(token_type_literal_false, (char *)literal_false);
+			return set_token(token_type_literal_false, literal_false, strlen(literal_false));
 		} else if (consume_literal(literal_true)) {
-			return set_token(token_type_literal_true, (char *)literal_true);
+			return set_token(token_type_literal_true, literal_true, strlen(literal_true));
 		} else if (consume_literal(literal_null)) {
-			return set_token(token_type_null, (char *)literal_null);
+			return set_token(token_type_null, literal_null, strlen(literal_null));
 		} else {
 			fprintf_s(stderr, "failed to tokenize");
 			exit(1);
@@ -370,7 +368,7 @@ static bool current_is(const token_type type) {
 
 static void current_must(const token_type type) {
 	if (!current_is(type)) {
-		fprintf(stderr, "current must %s but %s %s\n", token_type_to_string(type), token_type_to_string(current_token.type), current_token.string);
+		fprintf(stderr, "current must %s but %s\n", token_type_to_string(type), token_type_to_string(current_token.type));
 		exit(1);
 	}
 }
@@ -395,7 +393,9 @@ static kzrjson_inner parse_value() {
 		get_token();
 		return data;
 	} else if (current_is(token_type_string)) {
-		kzrjson_inner data = make_string(current_token.string);
+		char *buffer = calloc(current_token.length + 1, sizeof(char));
+		strncpy_s(buffer, current_token.length + 1, current_token.begin, current_token.length);
+		kzrjson_inner data = make_string(buffer);
 		get_token();
 		return data;
 	} else if (current_is(token_type_begin_object)) {
@@ -440,7 +440,9 @@ static kzrjson_inner parse_array() {
 // member = string name-separator value
 static kzrjson_inner parse_member() {
 	current_must(token_type_string);
-	kzrjson_inner member = make_member(current_token.string);
+	char *buffer = calloc(current_token.length + 1, sizeof(char));
+	strncpy_s(buffer, current_token.length + 1, current_token.begin, current_token.length);
+	kzrjson_inner member = make_member(buffer);
 	get_token();
 	current_must(token_type_name_separator);
 	get_token();
@@ -485,7 +487,7 @@ static kzrjson_inner parse_number() {
 static void print_tokens(const char *json_text) {
 	set_lexer(json_text);
 	while (get_token() != token_type_end_of_text) {
-		printf("%-15s %s\n", token_type_to_string(current_token.type), current_token.string);
+		printf("%-15s\n", token_type_to_string(current_token.type));
 	}
 }
 
