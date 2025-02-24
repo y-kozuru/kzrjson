@@ -20,22 +20,24 @@ static const char *sample1 = "\
 	}\n \
 }\n";
 
+// todo: add exception handling test.
 static void test_parse_sample1(void) {
-	kzrjson_t data = kzrjson_parse(sample1);
-	assert(kzrjson_is_object(data));
-	assert(kzrjson_object_size(data) == 1);
+	kzrjson_t any = kzrjson_parse(sample1);
+	if (kzrjson_catch_exception()) {
+		puts("exception");
+		printf("%d\n", kzrjson_exception());
+	}
+	assert(kzrjson_is_object(any));
+	assert(kzrjson_object_size(any) == 1);
 
-	kzrjson_t member_image = kzrjson_get_member(data, "Image");
-	assert(!kzrjson_exception_occured(member_image));
+	kzrjson_t member_image = kzrjson_get_member(any, "Image");
 	assert(kzrjson_is_member(member_image));
 
 	kzrjson_t object = kzrjson_get_value_from_member(member_image);
-	assert(!kzrjson_exception_occured(object));
 	assert(kzrjson_is_object(object));
 	assert(kzrjson_object_size(object) == 6);
 
 	kzrjson_t member_title = kzrjson_get_value_from_key(object, "Title");
-	assert(!kzrjson_exception_occured(member_title));
 	assert(kzrjson_is_string(member_title));
 	const char *member_title_string = kzrjson_get_string(member_title);
 	assert(strcmp(member_title_string, "View from 15th Floor") == 0);
@@ -50,7 +52,7 @@ static void test_parse_sample1(void) {
 		assert(kzrjson_get_number_as_unsigned_integer(element) == ids[i]);
 	}
 
-	kzrjson_free(data);
+	kzrjson_free(any);
 	puts("test_parse_sample1 done");
 }
 

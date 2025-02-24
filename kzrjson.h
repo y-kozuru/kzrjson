@@ -22,7 +22,7 @@ typedef enum {
 	kzrjson_exception_illegal_type,
 	kzrjson_exception_array_index_out_of_range,
 	kzrjson_exception_object_key_not_found,
-} kzrjson_exception_type;
+} kzrjson_exception_t;
 
 /*
  * Return whether or not an exception was caught.
@@ -44,7 +44,7 @@ typedef enum {
  *    }
  */
 bool kzrjson_catch_exception(void);
-kzrjson_exception_type kzrjson_exception(void);
+kzrjson_exception_t kzrjson_exception(void);
 
 // todo: implement
 void kzrjson_exception_what(void);
@@ -67,14 +67,14 @@ kzrjson_t kzrjson_parse(const char *json_text);
  * 
  * [no error]
  */
-void kzrjson_free(kzrjson_t data);
+void kzrjson_free(kzrjson_t any);
 
 /*
  * Print kzrjson_t to stdout with indent.
  * 
  * [no error]
  */
-void kzrjson_print(kzrjson_t data);
+void kzrjson_print(kzrjson_t any);
 
 
 /*
@@ -82,13 +82,13 @@ void kzrjson_print(kzrjson_t data);
  *
  * [error] kzrjson_exception_illegal_type
  */
-bool kzrjson_is_object(kzrjson_t data);
-bool kzrjson_is_array(kzrjson_t data);
-bool kzrjson_is_string(kzrjson_t data);
-bool kzrjson_is_number(kzrjson_t data);
-bool kzrjson_is_member(kzrjson_t data);
-bool kzrjson_is_boolean(kzrjson_t data);
-bool kzrjson_is_null(kzrjson_t data);
+bool kzrjson_is_object(kzrjson_t any);
+bool kzrjson_is_array(kzrjson_t any);
+bool kzrjson_is_string(kzrjson_t any);
+bool kzrjson_is_number(kzrjson_t any);
+bool kzrjson_is_member(kzrjson_t any);
+bool kzrjson_is_boolean(kzrjson_t any);
+bool kzrjson_is_null(kzrjson_t any);
 
 
 /*****************************************************************************
