@@ -94,4 +94,4 @@ int main(void) {
 # todo
 * Correctly handle escape characters in string
 * Add unified error handling
-* Release heap memory of `current_token`
+* Convert `json_t` to string
