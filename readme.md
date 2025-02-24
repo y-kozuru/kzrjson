@@ -94,4 +94,4 @@ int main(void) {
 # todo
 * Correctly handle escape characters in string
 * Add unified error handling
-* Convert `json_t` to string
+* Convert `kzrjson_t` to string
