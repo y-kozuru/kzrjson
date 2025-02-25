@@ -293,6 +293,14 @@ kzrjson_t kzrjson_make_number_unsigned_integer(const uint64_t number);
   */
 kzrjson_t kzrjson_make_number_integer(const int64_t number);
 
+/*
+ * Make number from exponential anotation number as string.
+ *
+ * [error] kzrjson_exception_not_number
+ * [error] kzrjson_exception_failed_to_allocate_memory
+ */
+kzrjson_t kzrjson_make_number_exp(const char *exp);
+
  /*
   * [error] kzrjson_exception_failed_to_allocate_memory
   */

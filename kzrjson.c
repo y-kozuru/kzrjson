@@ -1207,7 +1207,27 @@ kzrjson_t kzrjson_make_number_integer(const int64_t number) {
 	return json;
 }
 
-// [exception] kzrjson_exception_failed_to_allocate_memory
+kzrjson_t kzrjson_make_number_exp(const char *exp, const size_t length) {
+	exception_set_success();
+
+	char *end;
+	const double number = strtod(exp, &end);
+	if (exp == end) {
+		throw_exception(kzrjson_exception_not_number);
+		return kzrjson_void;
+	}
+
+	char *buffer = copy_string(exp, length);
+	if (kzrjson_catch_exception()) {
+		return kzrjson_void;
+	}
+	kzrjson_t json = make_kzrjson(make_number(buffer, kzrjson_number_type_exp));
+	if (kzrjson_catch_exception()) {
+		return kzrjson_void;
+	}
+	return json;
+}
+
 kzrjson_text_t kzrjson_to_string(kzrjson_t data) {
 	exception_set_success();
 	g_converter.length = 0;
