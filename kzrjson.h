@@ -3,31 +3,14 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-struct kzrjson_inner;
-typedef struct {
-	struct kzrjson_inner *inner;
-} kzrjson_t;
-
-typedef struct {
-	char *text;
-	size_t length;
-} kzrjson_text_t;
-
-typedef enum {
-	kzrjson_success = 0,
-	kzrjson_exception_tokenize,	
-	kzrjson_exception_parse,
-	kzrjson_exception_failed_to_allocate_memory,
-	kzrjson_exception_not_number,
-	kzrjson_exception_illegal_type,
-	kzrjson_exception_array_index_out_of_range,
-	kzrjson_exception_object_key_not_found,
-} kzrjson_exception_t;
-
+/*****************************************************************************
+ * Exception
+ *****************************************************************************/
 /*
- * Return whether or not an exception was caught.
+ * When erro occurred, kzrjson_ functions throw exception.
+ * You can catch and handle exception.
+ *
  * example)
- * 
  *    kzrjson_t json = kzrjson_parse(json_text);
  *    if (kzrjson_catch_exception()) {
  *       switch (kzrjson_exception()) {
@@ -43,12 +26,77 @@ typedef enum {
  *       }
  *    }
  */
+typedef enum {
+	kzrjson_success = 0,
+
+	// Failed to tokenize input JSON text
+	kzrjson_exception_tokenize,
+
+	// Failed to parse input JSON text
+	kzrjson_exception_parse,
+
+	// Failed to allocate memory for kzrjson_t
+	kzrjson_exception_failed_to_allocate_memory,
+
+	// Failed to parse number because input number token is not parseable number
+	kzrjson_exception_not_number,
+
+	// Input kzrjson_t is illegal type
+	kzrjson_exception_illegal_type,
+
+	// The index is out of range of the array.
+	kzrjson_exception_array_index_out_of_range,
+
+	// There is no member with the specified key in the object.
+	kzrjson_exception_object_key_not_found,
+} kzrjson_exception_t;
+
+/*
+ * Return whether or not an exception was caught.
+ */
 bool kzrjson_catch_exception(void);
 kzrjson_exception_t kzrjson_exception(void);
 
 // todo: implement
 void kzrjson_exception_what(void);
 
+
+/*****************************************************************************
+ * Data types
+ *****************************************************************************/
+ /*
+ * kzrjson_t is common type of this library.
+ * All of JSON types are represented by this type.
+ * You can access Internal data using various functions in the library.
+ * inner is allocated to heap memory.
+ */
+struct kzrjson_inner;
+typedef struct {
+	struct kzrjson_inner *inner;
+} kzrjson_t;
+
+/*
+ * String representation of kzrjson_t.
+ * text is allocated to heap memory.
+ */
+typedef struct {
+	char *text;
+	size_t length;
+} kzrjson_text_t;
+
+/*
+ * Free kzrjson_t.
+ * All memory in the kzrjson_t given as an argument is released,
+ * so data retrieved from that kzrjson_t (object members, array elements, etc.) are also released.
+ * 
+ * [no error]
+ */
+void kzrjson_free(kzrjson_t any);
+
+
+/*****************************************************************************
+ * Parse JSON
+ *****************************************************************************/
 /*
  * Parse JSON text and construct kzrjson_t.
  * All information required as JSON data is copied at parse time,
@@ -60,15 +108,9 @@ void kzrjson_exception_what(void);
  */
 kzrjson_t kzrjson_parse(const char *json_text);
 
-/*
- * Free kzrjson_t.
- * All memory in the kzrjson_t given as an argument is released,
- * so data retrieved from that kzrjson_t (object members, array elements, etc.) are also released.
- * 
- * [no error]
- */
-void kzrjson_free(kzrjson_t any);
-
+/*****************************************************************************
+ * Print JSON
+ *****************************************************************************/
 /*
  * Print kzrjson_t to stdout with indent.
  * 
@@ -77,6 +119,9 @@ void kzrjson_free(kzrjson_t any);
 void kzrjson_print(kzrjson_t any);
 
 
+/*****************************************************************************
+ * Operations of kzrjson_t
+ *****************************************************************************/
 /*
  * Check type of kzrjson_t.
  *
@@ -90,10 +135,6 @@ bool kzrjson_is_member(kzrjson_t any);
 bool kzrjson_is_boolean(kzrjson_t any);
 bool kzrjson_is_null(kzrjson_t any);
 
-
-/*****************************************************************************
- * Functions to read JSON data
- ****************************************************************************/
 /*
  * Get the number of members of the object.
  * 
@@ -189,7 +230,7 @@ uint64_t kzrjson_get_number_as_unsigned_integer(kzrjson_t number);
 double kzrjson_get_number_as_double(kzrjson_t number);
 
 /*****************************************************************************
- * Functions to make JSON data
+ * Make JSON
  ****************************************************************************/
 /*
  * [error] kzrjson_exception_failed_to_allocate_memory

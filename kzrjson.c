@@ -10,9 +10,8 @@
  *****************************************************************************/
 static kzrjson_exception_t g_exception = kzrjson_success;
 
-// [no exception]
-static void throw_exception(kzrjson_exception_t type) {
-	g_exception = type;
+static void exception_set_success(void) {
+	g_exception = kzrjson_success;
 }
 
 // [no exception]
@@ -23,6 +22,29 @@ bool kzrjson_catch_exception(void) {
 kzrjson_exception_t kzrjson_exception(void) {
 	return g_exception;
 }
+
+static const char *exception_what() {
+	switch (kzrjson_exception()) { 
+	case kzrjson_success: return "success";
+	case kzrjson_exception_tokenize: return "failed to tokenize";
+	case kzrjson_exception_parse: return "failed to parse";
+	case kzrjson_exception_failed_to_allocate_memory: return "failed to allocate memory";
+	case kzrjson_exception_not_number: return "input number token is not number";
+	case kzrjson_exception_illegal_type: return "illegal type";
+	case kzrjson_exception_array_index_out_of_range: return "array index out of range";
+	case kzrjson_exception_object_key_not_found: return "object key not found";
+	default: return "";
+	}
+}
+
+#define throw_exception(type) inner_throw_exception(type, __func__, __LINE__)
+
+// [no exception]
+static void inner_throw_exception(kzrjson_exception_t type, const char *func, int line) {
+	g_exception = type;
+	printf("throw exception: %s %d: %s\n", func, line, exception_what());
+}
+
 
 static const char begin_array = '['; // begin-array = ws %x5B ws  ; [ left square bracket
 static const char begin_object = '{'; // begin-object = ws %x7B ws  ; { left curly bracket
@@ -298,6 +320,8 @@ static void add_element(kzrjson_inner array_or_object, kzrjson_inner element) {
 		}
 		*(array_or_object->elements + array_or_object->elements_size - 1) = element;
 	}
+	return;
+
 throw_exp:
 	throw_exception(kzrjson_exception_failed_to_allocate_memory);
 }
@@ -317,18 +341,18 @@ static void add_value(kzrjson_inner member, kzrjson_inner value) {
  * [exception] kzrjson_exception_failed_to_allocate_memory
  *    return NULL
  */
-static kzrjson_inner make_json_data(const kzrjson_json_type type, char *string) {
-	kzrjson_inner data = calloc(1, sizeof(struct kzrjson_inner));
-	if (data == NULL) {
+static kzrjson_inner make_json(const kzrjson_json_type type, char *string) {
+	kzrjson_inner any = calloc(1, sizeof(struct kzrjson_inner));
+	if (any == NULL) {
 		throw_exception(kzrjson_exception_failed_to_allocate_memory);
 		return NULL;
 	}
-	data->type = type;
-	data->value = string;
-	data->elements = NULL;
-	data->elements_size = 0;
-	data->member_key = NULL;
-	return data;
+	any->type = type;
+	any->value = string;
+	any->elements = NULL;
+	any->elements_size = 0;
+	any->member_key = NULL;
+	return any;
 }
 
 /*
@@ -338,7 +362,7 @@ static kzrjson_inner make_json_data(const kzrjson_json_type type, char *string) 
  *    return NULL
  */
 static kzrjson_inner make_string(const char *string) {
-	return make_json_data(kzrjson_json_type_string, (char *)string);
+	return make_json(kzrjson_json_type_string, (char *)string);
 }
 
 /*
@@ -350,7 +374,7 @@ static kzrjson_inner make_string(const char *string) {
  *    return NULL
  */
 static kzrjson_inner make_number(char *number, kzrjson_number_type type) {
-	kzrjson_inner data = make_json_data(kzrjson_json_type_number, number);
+	kzrjson_inner data = make_json(kzrjson_json_type_number, number);
 	if (data == NULL) {
 		throw_exception(kzrjson_exception_failed_to_allocate_memory);
 		return NULL;
@@ -386,7 +410,7 @@ throw_exp:
  *    return NULL
  */
 static kzrjson_inner make_boolean(const bool boolean) {
-	return make_json_data(kzrjson_json_type_boolean, (char *)(boolean ? literal_true : literal_false));
+	return make_json(kzrjson_json_type_boolean, (char *)(boolean ? literal_true : literal_false));
 }
 
 /*
@@ -396,7 +420,7 @@ static kzrjson_inner make_boolean(const bool boolean) {
  *    return NULL
  */
 static kzrjson_inner make_null() {
-	return make_json_data(kzrjson_json_type_null, (char *)literal_null);
+	return make_json(kzrjson_json_type_null, (char *)literal_null);
 }
 
 /*
@@ -406,7 +430,7 @@ static kzrjson_inner make_null() {
  *    return NULL
  */
 static kzrjson_inner make_object() {
-	return make_json_data(kzrjson_json_type_object, NULL);
+	return make_json(kzrjson_json_type_object, NULL);
 }
 
 /*
@@ -416,7 +440,7 @@ static kzrjson_inner make_object() {
  *    return NULL
  */
 static kzrjson_inner make_array() {
-	return make_json_data(kzrjson_json_type_array, NULL);
+	return make_json(kzrjson_json_type_array, NULL);
 }
 
 /*
@@ -426,7 +450,7 @@ static kzrjson_inner make_array() {
  *    return NULL
  */
 static kzrjson_inner make_member(const char *key) {
-	kzrjson_inner data = make_json_data(kzrjson_json_type_member, NULL);
+	kzrjson_inner data = make_json(kzrjson_json_type_member, NULL);
 	if (kzrjson_catch_exception()) return NULL;
 	data->member_key = (char *)key;
 	return data;
@@ -529,6 +553,7 @@ static kzrjson_inner parse_value() {
 	} else {
 		return parse_number();
 	}
+
 throw_exp:
 	return NULL;
 }
@@ -848,7 +873,7 @@ static kzrjson_t make_kzrjson(kzrjson_inner inner) {
  * Intefaces
  *****************************************************************************/
 void kzrjson_print(kzrjson_t any) {
-	throw_exception(kzrjson_success);
+	exception_set_success();
 	g_indent = 0;
 	kzrjson_inner_print(any.inner);
 	printf("\n");
@@ -856,18 +881,20 @@ void kzrjson_print(kzrjson_t any) {
 }
 
 void kzrjson_free(kzrjson_t any) {
-	throw_exception(kzrjson_success);
+	exception_set_success();
 	if (any.inner == NULL) return;
 	kzrjson_inner_free(any.inner);
 }
 
 kzrjson_t kzrjson_parse(const char *json_text) {
-	throw_exception(kzrjson_success);
+	exception_set_success();
 	set_lexer(json_text);
 	kzrjson_t any;
 	any.inner = parse_json_text();
 	if (kzrjson_catch_exception()) {
+		const kzrjson_exception_t exception = kzrjson_exception();
 		kzrjson_free(any);
+		throw_exception(exception);
 		return kzrjson_void;
 	}
 	return any;
@@ -917,7 +944,7 @@ size_t kzrjson_object_size(kzrjson_t object) {
 }
 
 kzrjson_t kzrjson_get_member(kzrjson_t object, const char *key) {
-	throw_exception(kzrjson_success);
+	exception_set_success();
 	if (!kzrjson_is_object(object)) {
 		throw_exception(kzrjson_exception_illegal_type);
 		return kzrjson_void;
@@ -936,7 +963,7 @@ kzrjson_t kzrjson_get_member(kzrjson_t object, const char *key) {
 }
 
 const char *kzrjson_get_member_key(kzrjson_t member) {
-	throw_exception(kzrjson_success);
+	exception_set_success();
 	if (!kzrjson_is_member(member)) {
 		throw_exception(kzrjson_exception_illegal_type);
 		return NULL;
@@ -945,7 +972,7 @@ const char *kzrjson_get_member_key(kzrjson_t member) {
 }
 
 kzrjson_t kzrjson_get_value_from_member(kzrjson_t member) {
-	throw_exception(kzrjson_success);
+	exception_set_success();
 	if (!kzrjson_is_member(member)) {
 		throw_exception(kzrjson_exception_illegal_type);
 		return kzrjson_void;
@@ -957,7 +984,7 @@ kzrjson_t kzrjson_get_value_from_member(kzrjson_t member) {
 }
 
 kzrjson_t kzrjson_get_value_from_key(kzrjson_t object, const char *key) {
-	throw_exception(kzrjson_success);
+	exception_set_success();
 	if (!kzrjson_is_object(object)) {
 		throw_exception(kzrjson_exception_illegal_type);
 		return kzrjson_void;
@@ -970,7 +997,7 @@ kzrjson_t kzrjson_get_value_from_key(kzrjson_t object, const char *key) {
 }
 
 size_t kzrjson_array_size(kzrjson_t array) {
-	throw_exception(kzrjson_success);
+	exception_set_success();
 	if (!kzrjson_is_array(array)) {
 		throw_exception(kzrjson_exception_illegal_type);
 		return 0;
@@ -979,7 +1006,7 @@ size_t kzrjson_array_size(kzrjson_t array) {
 }
 
 kzrjson_t kzrjson_get_element(kzrjson_t array, size_t index) {
-	throw_exception(kzrjson_success);
+	exception_set_success();
 	if (!kzrjson_is_array(array)) {
 		throw_exception(kzrjson_exception_illegal_type);
 		return kzrjson_void;
@@ -995,7 +1022,7 @@ kzrjson_t kzrjson_get_element(kzrjson_t array, size_t index) {
 }
 
 const char *kzrjson_get_string(kzrjson_t string) {
-	throw_exception(kzrjson_success);
+	exception_set_success();
 	if (!kzrjson_is_string(string)) {
 		throw_exception(kzrjson_exception_illegal_type);
 		return NULL;
@@ -1004,7 +1031,7 @@ const char *kzrjson_get_string(kzrjson_t string) {
 }
 
 bool kzrjson_get_boolean(kzrjson_t boolean) {
-	throw_exception(kzrjson_success);
+	exception_set_success();
 	if (!kzrjson_is_boolean(boolean)) {
 		throw_exception(kzrjson_exception_illegal_type);
 		return false;
@@ -1013,7 +1040,7 @@ bool kzrjson_get_boolean(kzrjson_t boolean) {
 }
 
 const char *kzrjson_get_number_as_string(kzrjson_t number) {
-	throw_exception(kzrjson_success);
+	exception_set_success();
 	if (!kzrjson_is_number(number)) {
 		throw_exception(kzrjson_exception_illegal_type);
 		return NULL;
@@ -1022,7 +1049,7 @@ const char *kzrjson_get_number_as_string(kzrjson_t number) {
 }
 
 int64_t kzrjson_get_number_as_integer(kzrjson_t number) {
-	throw_exception(kzrjson_success);
+	exception_set_success();
 	if (!kzrjson_is_number(number)) {
 		throw_exception(kzrjson_exception_illegal_type);
 		return 0;
@@ -1031,7 +1058,7 @@ int64_t kzrjson_get_number_as_integer(kzrjson_t number) {
 }
 
 uint64_t kzrjson_get_number_as_unsigned_integer(kzrjson_t number) {
-	throw_exception(kzrjson_success);
+	exception_set_success();
 	if (!kzrjson_is_number(number)) {
 		throw_exception(kzrjson_exception_illegal_type);
 		return 0;
@@ -1040,7 +1067,7 @@ uint64_t kzrjson_get_number_as_unsigned_integer(kzrjson_t number) {
 }
 
 double kzrjson_get_number_as_double(kzrjson_t number) {
-	throw_exception(kzrjson_success);
+	exception_set_success();
 	if (!kzrjson_is_number(number)) {
 		throw_exception(kzrjson_exception_illegal_type);
 		return 0;
@@ -1049,21 +1076,21 @@ double kzrjson_get_number_as_double(kzrjson_t number) {
 }
 
 kzrjson_t kzrjson_make_object(void) {
-	throw_exception(kzrjson_success);
+	exception_set_success();
 	kzrjson_t json = make_kzrjson(make_object());
 	if (kzrjson_catch_exception()) return kzrjson_void;
 	return json;
 }
 
 kzrjson_t kzrjson_make_array(void) {
-	throw_exception(kzrjson_success);
+	exception_set_success();
 	kzrjson_t json = make_kzrjson(make_array());
 	if (kzrjson_catch_exception()) return kzrjson_void;
 	return json;
 }
 
 void kzrjson_object_add_member(kzrjson_t *object, kzrjson_t member) {
-	throw_exception(kzrjson_success);
+	exception_set_success();
 	if (!kzrjson_is_object(*object)) {
 		throw_exception(kzrjson_exception_illegal_type);
 		return;
@@ -1076,7 +1103,7 @@ void kzrjson_object_add_member(kzrjson_t *object, kzrjson_t member) {
 }
 
 void kzrjson_array_add_element(kzrjson_t *array, kzrjson_t element) {
-	throw_exception(kzrjson_success);
+	exception_set_success();
 	if (!kzrjson_is_array(*array)) {
 		throw_exception(kzrjson_exception_illegal_type);
 		return;
@@ -1089,7 +1116,7 @@ void kzrjson_array_add_element(kzrjson_t *array, kzrjson_t element) {
 }
 
 kzrjson_t kzrjson_make_member(const char *key, const size_t key_length, kzrjson_t value) {
-	throw_exception(kzrjson_success);
+	exception_set_success();
 
 	char *buffer = copy_string(key, key_length);
 	if (kzrjson_catch_exception()) return kzrjson_void;
@@ -1102,7 +1129,7 @@ kzrjson_t kzrjson_make_member(const char *key, const size_t key_length, kzrjson_
 }
 
 kzrjson_t kzrjson_make_string(const char *string, const size_t length) {
-	throw_exception(kzrjson_success);
+	exception_set_success();
 
 	char *buffer = copy_string(string, length);
 	if (kzrjson_catch_exception()) return kzrjson_void;
@@ -1114,21 +1141,21 @@ kzrjson_t kzrjson_make_string(const char *string, const size_t length) {
 }
 
 kzrjson_t kzrjson_make_boolean(const bool boolean) {
-	throw_exception(kzrjson_success);
+	exception_set_success();
 	kzrjson_t json = make_kzrjson(make_boolean(boolean));
 	if (kzrjson_catch_exception()) return kzrjson_void;
 	return json;
 }
 
 kzrjson_t kzrjson_make_null() {
-	throw_exception(kzrjson_success);
+	exception_set_success();
 	kzrjson_t json = make_kzrjson(make_null());
 	if (kzrjson_catch_exception()) return kzrjson_void;
 	return json;
 }
 
 kzrjson_t kzrjson_make_number_double(const double number) {
-	throw_exception(kzrjson_success);
+	exception_set_success();
 	static const size_t double_max_digit = 16;
 	char *buffer = calloc(double_max_digit + 1, sizeof(char));
 	if (buffer == NULL) {
@@ -1142,7 +1169,7 @@ kzrjson_t kzrjson_make_number_double(const double number) {
 }
 
 kzrjson_t kzrjson_make_number_unsigned_integer(const uint64_t number) {
-	throw_exception(kzrjson_success);
+	exception_set_success();
 	static const size_t uint64_max_digit = 20;
 	char *buffer = calloc(uint64_max_digit + 1, sizeof(char));
 	if (buffer == NULL) {
@@ -1156,7 +1183,7 @@ kzrjson_t kzrjson_make_number_unsigned_integer(const uint64_t number) {
 }
 
 kzrjson_t kzrjson_make_number_integer(const int64_t number) {
-	throw_exception(kzrjson_success);
+	exception_set_success();
 	static const size_t int64_t_max_digit = 19;
 	char *buffer = calloc(int64_t_max_digit + 1, sizeof(char));
 	if (buffer == NULL) {
@@ -1171,7 +1198,7 @@ kzrjson_t kzrjson_make_number_integer(const int64_t number) {
 
 // [exception] kzrjson_exception_failed_to_allocate_memory
 kzrjson_text_t kzrjson_to_string(kzrjson_t data) {
-	throw_exception(kzrjson_success);
+	exception_set_success();
 	g_converter.length = 0;
 
 	kzrjson_text_t json;
