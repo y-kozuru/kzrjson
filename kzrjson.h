@@ -13,7 +13,7 @@
  * example)
  *    kzrjson_t json = kzrjson_parse(json_text);
  *    if (kzrjson_catch_exception()) {
- *       switch (kzrjson_exception()) {
+ *       switch (kzrjson_exception_name()) {
  *       case kzrjson_exception_tokenize:
  *           // exception handling
  *           break;
@@ -49,16 +49,13 @@ typedef enum {
 
 	// There is no member with the specified key in the object.
 	kzrjson_exception_object_key_not_found,
-} kzrjson_exception_t;
+} kzrjson_exception_name;
 
 /*
  * Return whether or not an exception was caught.
  */
 bool kzrjson_catch_exception(void);
-kzrjson_exception_t kzrjson_exception(void);
-
-// todo: implement
-void kzrjson_exception_what(void);
+kzrjson_exception_name kzrjson_exception(void);
 
 
 /*****************************************************************************

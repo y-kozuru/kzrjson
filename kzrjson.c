@@ -8,19 +8,26 @@
 /*****************************************************************************
  * Functions to handling exception
  *****************************************************************************/
-static kzrjson_exception_t g_exception = kzrjson_success;
+typedef struct {
+	kzrjson_exception_name name;
+	const char *what;
+} kzrjson_exception_t;
+
+ static kzrjson_exception_t g_exception = {
+	.name = kzrjson_success
+};
 
 static void exception_set_success(void) {
-	g_exception = kzrjson_success;
+	g_exception.name = kzrjson_success;
 }
 
 // [no exception]
 bool kzrjson_catch_exception(void) {
-	return g_exception != kzrjson_success;
+	return g_exception.name != kzrjson_success;
 }
 
-kzrjson_exception_t kzrjson_exception(void) {
-	return g_exception;
+kzrjson_exception_name kzrjson_exception(void) {
+	return g_exception.name;
 }
 
 static const char *exception_what() {
@@ -37,12 +44,10 @@ static const char *exception_what() {
 	}
 }
 
-#define throw_exception(type) inner_throw_exception(type, __func__, __LINE__)
-
 // [no exception]
-static void inner_throw_exception(kzrjson_exception_t type, const char *func, int line) {
-	g_exception = type;
-	printf("throw exception: %s %d: %s\n", func, line, exception_what());
+static void throw_exception(kzrjson_exception_name type) {
+	g_exception.name = type;
+	g_exception.what = exception_what();
 }
 
 
@@ -888,15 +893,21 @@ void kzrjson_free(kzrjson_t any) {
 
 kzrjson_t kzrjson_parse(const char *json_text) {
 	exception_set_success();
+
 	set_lexer(json_text);
+
 	kzrjson_t any;
 	any.inner = parse_json_text();
 	if (kzrjson_catch_exception()) {
-		const kzrjson_exception_t exception = kzrjson_exception();
+		const kzrjson_exception_name exception = kzrjson_exception();
 		kzrjson_free(any);
 		throw_exception(exception);
 		return kzrjson_void;
 	}
+
+	lexer.pos = NULL;
+	lexer.text = NULL;
+
 	return any;
 }
 
