@@ -15,13 +15,13 @@
  *    if (kzrjson_catch_exception()) {
  *       switch (kzrjson_exception()) {
  *       case kzrjson_exception_tokenize:
- * 			 // exception handling
+ *           // exception handling
  *           break;
  *       case kzrjson_exception_parse:
- * 			 // exception handling
+ *           // exception handling
  *           break;
  *       case kzrjson_exception_failed_to_allocate_memory:
- * 			 // exception handling
+ *           // exception handling
  *           break;
  *       }
  *    }
