@@ -9,7 +9,7 @@ static const char *sample1 = "\
 	\"Image\": {\n\
 		\"Width\":  800,\n \
 		\"Height\": 600,\n \
-		\"Title\":  \"View from 15th Floor\",\n \
+		\"Title\":  \"View from \\\"15th Floor\\\"\",\n \
 		\"Thumbnail\": {\n \
 			\"Url\":    \"http://www.example.com/image/481989943\",\n \
 			\"Height\": 125,\n \
@@ -40,7 +40,7 @@ static void test_parse_sample1(void) {
 	kzrjson_t member_title = kzrjson_get_value_from_key(object, "Title");
 	assert(kzrjson_is_string(member_title));
 	const char *member_title_string = kzrjson_get_string(member_title);
-	assert(strcmp(member_title_string, "View from 15th Floor") == 0);
+	assert(strcmp(member_title_string, "View from \\\"15th Floor\\\"") == 0);
 
 	const bool member_animated = kzrjson_get_boolean(kzrjson_get_value_from_key(object, "Animated"));
 	assert(member_animated == false);

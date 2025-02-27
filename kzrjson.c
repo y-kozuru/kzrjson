@@ -180,23 +180,24 @@ static bool consume_literal(const char *literal) {
 	return false;
 }
 
-// [exception] kzrjson_exception_tokenize
+/*
+ * string = quotation-mark *char quotation-mark
+ * char = unescaped /
+ * escape (
+ *   %x22 /          ; "    quotation mark  U+0022
+ *   %x5C /          ; \    reverse solidus U+005C
+ *   %x2F /          ; /    solidus         U+002F
+ *   %x62 /          ; b    backspace       U+0008
+ *   %x66 /          ; f    form feed       U+000C
+ *   %x6E /          ; n    line feed       U+000A
+ *   %x72 /          ; r    carriage return U+000D
+ *   %x74 /          ; t    tab             U+0009
+ *   %x75 4HEXDIG )  ; uXXXX                U+XXXX
+ * unescaped = %x20-21 / %x23-5B / %x5D-10FFFF
+ * 
+ * [exception] kzrjson_exception_tokenize
+ */
 static kzrjson_token_type set_token_string() {
-	/*
-	string = quotation-mark *char quotation-mark
-	char = unescaped /
-	escape (
-		%x22 /          ; "    quotation mark  U+0022
-		%x5C /          ; \    reverse solidus U+005C
-		%x2F /          ; /    solidus         U+002F
-		%x62 /          ; b    backspace       U+0008
-		%x66 /          ; f    form feed       U+000C
-		%x6E /          ; n    line feed       U+000A
-		%x72 /          ; r    carriage return U+000D
-		%x74 /          ; t    tab             U+0009
-		%x75 4HEXDIG )  ; uXXXX                U+XXXX
-	unescaped = %x20-21 / %x23-5B / %x5D-10FFFF
-	*/
 	const char *begin = lexer.pos;
 	int length = 0;
 	for (; *lexer.pos != quotation_mark; next()) {
@@ -204,7 +205,21 @@ static kzrjson_token_type set_token_string() {
 			throw_exception(kzrjson_exception_tokenize);
 			return 0;
 		}
-		length++;
+		static const char escape_targets[] = {0x22, 0x5C, 0x2F, 0x62, 0x66, 0x6E, 0x72, 0x74, 0x75, '\0'};
+		if (*lexer.pos == escape) {
+			next();
+			if (end_of_text()) {
+				throw_exception(kzrjson_exception_tokenize);
+				return 0;
+			}
+			if (strchr(escape_targets, *lexer.pos) == NULL) {
+				throw_exception(kzrjson_exception_tokenize);
+				return 0;
+			}
+			length += 2;
+		} else {
+			length++;
+		}
 	}
 	next(); // consume quotation_mark
 	return set_token(kzrjson_token_type_string, begin, length);

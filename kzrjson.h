@@ -299,7 +299,7 @@ kzrjson_t kzrjson_make_number_integer(const int64_t number);
  * [error] kzrjson_exception_not_number
  * [error] kzrjson_exception_failed_to_allocate_memory
  */
-kzrjson_t kzrjson_make_number_exp(const char *exp);
+kzrjson_t kzrjson_make_number_exp(const char *exp, const size_t length);
 
  /*
   * [error] kzrjson_exception_failed_to_allocate_memory
