@@ -1,5 +1,5 @@
 # kzrjson
-JSON library for C. It can parse JSON text and construct JSON data in your programs.
+JSON library for C or C++. It can parse JSON text and construct JSON data in your programs.
 
 # sample
 ## Parse JSON text
