@@ -38,7 +38,7 @@ int main(void) {
 
 	kzrjson_t array = kzrjson_get_value_from_key(object, "IDs");
 	for (int i = 0; i < array->elements_size; i++) {
-		kzrjson_t element = kzrjson_get_element(array, i);
+		kzrjson_t element = array->elements[i];
 		const uint64_t number = element->number_uint;
 		// => 116, 943, 234, 38793
 	}
