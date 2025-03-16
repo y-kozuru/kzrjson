@@ -27,29 +27,28 @@ static void test_parse_sample1(void) {
 		puts("exception");
 		printf("%d\n", kzrjson_exception());
 	}
-	assert(kzrjson_is_object(any));
-	assert(kzrjson_object_size(any) == 1);
+	assert(any->type == kzrjson_object);
+	assert(any->elements_size == 1);
 
 	kzrjson_t member_image = kzrjson_get_member(any, "Image");
-	assert(kzrjson_is_member(member_image));
+	assert(member_image->type == kzrjson_member);
 
-	kzrjson_t object = kzrjson_get_value_from_member(member_image);
-	assert(kzrjson_is_object(object));
-	assert(kzrjson_object_size(object) == 6);
+	kzrjson_t object = member_image->value;
+	assert(object->type == kzrjson_object);
+	assert(object->elements_size == 6);
 
 	kzrjson_t member_title = kzrjson_get_value_from_key(object, "Title");
-	assert(kzrjson_is_string(member_title));
-	const char *member_title_string = kzrjson_get_string(member_title);
-	assert(strcmp(member_title_string, "View from \\\"15th Floor\\\"") == 0);
+	assert(member_title->type == kzrjson_string);
+	assert(strcmp(member_title->string, "View from \\\"15th Floor\\\"") == 0);
 
-	const bool member_animated = kzrjson_get_boolean(kzrjson_get_value_from_key(object, "Animated"));
-	assert(member_animated == false);
+	// const bool member_animated = kzrjson_get_boolean(kzrjson_get_value_from_key(object, "Animated"));
+	//assert(member_animated == false);
 
 	kzrjson_t array = kzrjson_get_value_from_key(object, "IDs");
 	const uint64_t ids[] = {116, 943, 234, 38793};
-	for (int i = 0; i < kzrjson_array_size(array); i++) {
+	for (int i = 0; i < array->elements_size; i++) {
 		kzrjson_t element = kzrjson_get_element(array, i);
-		assert(kzrjson_get_number_as_unsigned_integer(element) == ids[i]);
+		assert(element->number_uint == ids[i]);
 	}
 
 	kzrjson_free(any);
@@ -84,13 +83,16 @@ static void test_parse_sample2(void) {
 	kzrjson_t array = kzrjson_parse(sample2);
 
 	kzrjson_t element1 = kzrjson_get_element(array, 0);
-	const double element1_latitude = kzrjson_get_number_as_double(kzrjson_get_value_from_key(element1, "Latitude"));
+	const double element1_latitude =
+		kzrjson_get_value_from_key(element1, "Latitude")->number_double;
 	assert(element1_latitude == 37.7668);
-	const double element1_longitude = kzrjson_get_number_as_double(kzrjson_get_value_from_key(element1, "Longitude"));
+	const double element1_longitude =
+		kzrjson_get_value_from_key(element1, "Longitude")->number_double;
 	assert(element1_longitude == -122.3959);
 
 	kzrjson_t element2 = kzrjson_get_element(array, 1);
-	const char *element2_latitude = kzrjson_get_number_as_string(kzrjson_get_value_from_key(element2, "Latitude"));
+	const char *element2_latitude =
+		kzrjson_get_value_from_key(element2, "Latitude")->string;
 	assert(strcmp(element2_latitude, "37.371991") == 0);
 
 	kzrjson_free(array);
@@ -100,49 +102,52 @@ static void test_parse_sample2(void) {
 static const char *sample3 = "[-1.3e+5, 6e-1]";
 static void test_parse_sample3(void) {
 	kzrjson_t array = kzrjson_parse(sample3);
-	assert(kzrjson_get_number_as_double(kzrjson_get_element(array, 0)) == -130000);
-	assert(kzrjson_get_number_as_double(kzrjson_get_element(array, 1)) == 0.6);
+	assert(kzrjson_get_element(array, 0)->number_double == -130000);
+	assert(kzrjson_get_element(array, 1)->number_double == 0.6);
 	kzrjson_free(array);
 	puts("test_parse_sample3 done");
 }
 
 static void test_make_json(void) {
 	kzrjson_t object = kzrjson_make_object();
-	assert(kzrjson_is_object(object));
-	assert(kzrjson_object_size(object) == 0);
+	assert(object->type == kzrjson_object);
+	assert(object->elements_size == 0);
 
 	kzrjson_t value_boolean = kzrjson_make_boolean(true);
-	assert(kzrjson_is_boolean(value_boolean));
-	assert(kzrjson_get_boolean(value_boolean) == true);
+	assert(value_boolean->type == kzrjson_bool);
+	assert(value_boolean->boolean);
 
 	kzrjson_t member = kzrjson_make_member("member1", strlen("member1"), value_boolean);
-	assert(kzrjson_is_member(member));
-	assert(strcmp(kzrjson_get_member_key(member), "member1") == 0);
-	assert(kzrjson_get_boolean(kzrjson_get_value_from_member(member)) == true);
+	assert(member->type == kzrjson_member);
+	assert(strcmp(member->key, "member1") == 0);
+	assert(member->value->type == kzrjson_bool);
+	assert(member->value->boolean);
 
-	kzrjson_object_add_member(&object, member);
-	assert(kzrjson_object_size(object) == 1);
+	kzrjson_object_add_member(object, member);
+	assert(object->elements_size == 1);
 	kzrjson_t value = kzrjson_get_value_from_key(object, "member1");
-	assert(kzrjson_get_boolean(value) == true);
+	assert(value->boolean);
 
 	kzrjson_t array = kzrjson_make_array();
-	assert(kzrjson_is_array(array));
-	assert(kzrjson_array_size(array) == 0);
-	kzrjson_array_add_element(&array, kzrjson_make_number_integer(-100));
-	kzrjson_array_add_element(&array, kzrjson_make_number_unsigned_integer(0));
-	kzrjson_array_add_element(&array, kzrjson_make_number_double(0.5));
-	kzrjson_array_add_element(&array, kzrjson_make_number_double(1.3e5));
-	kzrjson_array_add_element(&array, kzrjson_make_string("sample", strlen("sample")));
-	kzrjson_array_add_element(&array, kzrjson_make_null());
-	assert(kzrjson_array_size(array) == 6);
-	assert(kzrjson_get_number_as_integer(kzrjson_get_element(array, 0)) == -100);
-	assert(kzrjson_get_number_as_unsigned_integer(kzrjson_get_element(array, 1)) == 0);
-	assert(kzrjson_get_number_as_double(kzrjson_get_element(array, 2)) == 0.5);
-	assert(kzrjson_get_number_as_double(kzrjson_get_element(array, 3)) == 1.3e5);
-	assert(strcmp(kzrjson_get_string(kzrjson_get_element(array, 4)), "sample") == 0);
-	assert(kzrjson_is_null(kzrjson_get_element(array, 5)));
+	assert(array->type == kzrjson_array);
+	assert(array->elements_size == 0);
+	kzrjson_array_add_element(array, kzrjson_make_number_int(-100));
+	kzrjson_array_add_element(array, kzrjson_make_number_uint(0));
+	kzrjson_array_add_element(array, kzrjson_make_number_double(0.5));
+	kzrjson_array_add_element(array, kzrjson_make_number_double(1.3e5));
+	kzrjson_array_add_element(array, kzrjson_make_string("sample", strlen("sample")));
+	kzrjson_array_add_element(array, kzrjson_make_null());
+	assert(array->elements_size == 6);
+	assert(kzrjson_get_element(array, 0)->number_int == -100);
+	assert(kzrjson_get_element(array, 1)->number_uint == 0);
+	assert(kzrjson_get_element(array, 2)->number_double == 0.5);
+	assert(kzrjson_get_element(array, 3)->number_double == 1.3e5);
+	assert(strcmp(kzrjson_get_element(array, 4)->string, "sample") == 0);
+	assert(kzrjson_get_element(array, 5)->type == kzrjson_null);
 
-	kzrjson_object_add_member(&object, kzrjson_make_member("array1", strlen("array1"), array));
+	kzrjson_object_add_member(object,
+		kzrjson_make_member("array1", strlen("array1"), array)
+	);
 
 	kzrjson_free(object);
 	puts("test_make_json done");

@@ -61,16 +61,56 @@ kzrjson_exception_name kzrjson_exception(void);
 /*****************************************************************************
  * Data types
  *****************************************************************************/
+
  /*
  * kzrjson_t is common type of this library.
  * All of JSON types are represented by this type.
  * You can access Internal data using various functions in the library.
  * inner is allocated to heap memory.
  */
-struct kzrjson_inner;
-typedef struct {
-	struct kzrjson_inner *inner;
-} kzrjson_t;
+typedef enum {
+	kzrjson_object,
+	kzrjson_array,
+	kzrjson_string,
+	kzrjson_number,
+	kzrjson_bool,
+	kzrjson_null,
+	kzrjson_member,
+} kzrjson_type;
+
+typedef enum {
+	kzrjson_int,
+	kzrjson_uint,
+	kzrjson_double,
+	kzrjson_exp,
+} kzrjson_number_type;
+
+ typedef struct kzrjson_t *kzrjson_t;
+struct kzrjson_t {
+	kzrjson_type type;
+
+	// elements of array or object
+	kzrjson_t *elements;
+	size_t elements_size;
+
+	// key, value of member
+	char *key;
+	kzrjson_t value;
+
+	// string presentation for string, number, boolean, null
+	char *string;
+
+	// boolean
+	bool boolean;
+
+	// number
+	kzrjson_number_type number_type;
+	union {
+		int64_t number_int;
+		uint64_t number_uint;
+		double number_double;
+	};
+};
 
 /*
  * String representation of kzrjson_t.
@@ -89,7 +129,6 @@ typedef struct {
  * [no error]
  */
 void kzrjson_free(kzrjson_t any);
-
 
 /*****************************************************************************
  * Parse JSON
@@ -115,29 +154,9 @@ kzrjson_t kzrjson_parse(const char *json_text);
  */
 void kzrjson_print(kzrjson_t any);
 
-
 /*****************************************************************************
  * Operations of kzrjson_t
  *****************************************************************************/
-/*
- * Check type of kzrjson_t.
- *
- * [error] kzrjson_exception_illegal_type
- */
-bool kzrjson_is_object(kzrjson_t any);
-bool kzrjson_is_array(kzrjson_t any);
-bool kzrjson_is_string(kzrjson_t any);
-bool kzrjson_is_number(kzrjson_t any);
-bool kzrjson_is_member(kzrjson_t any);
-bool kzrjson_is_boolean(kzrjson_t any);
-bool kzrjson_is_null(kzrjson_t any);
-
-/*
- * Get the number of members of the object.
- * 
- * [error] kzrjson_exception_illegal_type
- */
-size_t kzrjson_object_size(kzrjson_t object);
 
 /*
  * Get a member from the object by key.
@@ -155,13 +174,6 @@ kzrjson_t kzrjson_get_member(kzrjson_t object, const char *key);
 const char *kzrjson_get_member_key(kzrjson_t member);
 
 /*
- * Get a value of the member from member.
- *
- * [error] kzrjson_exception_illegal_type
- */
-kzrjson_t kzrjson_get_value_from_member(kzrjson_t member);
-
-/*
  * Get a value of the member from object by member.
  *
  * [error] kzrjson_exception_illegal_type
@@ -170,61 +182,12 @@ kzrjson_t kzrjson_get_value_from_member(kzrjson_t member);
 kzrjson_t kzrjson_get_value_from_key(kzrjson_t object, const char *key);
 
 /*
- * Get the number of elements of the array.
- *
- * [error] kzrjson_exception_illegal_type
- */
-size_t kzrjson_array_size(kzrjson_t array);
-
-/*
  * Get an element of the array by index.
  *
  * [error] kzrjson_exception_illegal_type
  * [error] kzrjson_exception_array_index_out_of_range
  */
 kzrjson_t kzrjson_get_element(kzrjson_t array, size_t index);
-
-/*
- * Get string as const char * from kzrjson_t.
- *
- * [error] kzrjson_exception_illegal_type
- */
-const char *kzrjson_get_string(kzrjson_t string);
-
-/*
- * Get boolean as bool from kzrjson_t.
- *
- * [error] kzrjson_exception_illegal_type
- */
-bool kzrjson_get_boolean(kzrjson_t boolean);
-
-/*
- * Get number as const char * from kzrjson_t.
- *
- * [error] kzrjson_exception_illegal_type
- */
-const char *kzrjson_get_number_as_string(kzrjson_t number);
-
-/*
- * Get number as integer from kzrjson_t.
- *
- * [error] kzrjson_exception_illegal_type
- */
-int64_t kzrjson_get_number_as_integer(kzrjson_t number);
-
-/*
- * Get number as unsinged integer from kzrjson_t.
- *
- * [error] kzrjson_exception_illegal_type
- */
-uint64_t kzrjson_get_number_as_unsigned_integer(kzrjson_t number);
-
-/*
- * Get number as double from kzrjson_t.
- *
- * [error] kzrjson_exception_illegal_type
- */
-double kzrjson_get_number_as_double(kzrjson_t number);
 
 /*****************************************************************************
  * Make JSON
@@ -244,14 +207,14 @@ kzrjson_t kzrjson_make_array(void);
  *
  * [error] kzrjson_exception_illegal_type
  */
-void kzrjson_object_add_member(kzrjson_t *object, kzrjson_t member);
+bool kzrjson_object_add_member(kzrjson_t object, kzrjson_t member);
 
 /*
  * Add the element to the array.
  *
  * [error] kzrjson_exception_illegal_type
  */
-void kzrjson_array_add_element(kzrjson_t *array, kzrjson_t element);
+bool kzrjson_array_add_element(kzrjson_t array, kzrjson_t element);
 
 /*
  * Make member from key and value.
@@ -285,13 +248,13 @@ kzrjson_t kzrjson_make_number_double(const double number);
   * [error] kzrjson_exception_not_number
   * [error] kzrjson_exception_failed_to_allocate_memory
   */
-kzrjson_t kzrjson_make_number_unsigned_integer(const uint64_t number);
+kzrjson_t kzrjson_make_number_uint(const uint64_t number);
 
  /*
   * [error] kzrjson_exception_not_number
   * [error] kzrjson_exception_failed_to_allocate_memory
   */
-kzrjson_t kzrjson_make_number_integer(const int64_t number);
+kzrjson_t kzrjson_make_number_int(const int64_t number);
 
 /*
  * Make number from exponential anotation number as string.
