@@ -4,69 +4,48 @@
 #include <stdint.h>
 
 /*****************************************************************************
- * Exception
+ * error
  *****************************************************************************/
 /*
- * When erro occurred, kzrjson_ functions throw exception.
- * You can catch and handle exception.
+ * When error occurred, kzrjson functions set kzrjson_errno.
  *
  * example)
  *    kzrjson_t json = kzrjson_parse(json_text);
- *    if (kzrjson_catch_exception()) {
- *       switch (kzrjson_exception_name()) {
- *       case kzrjson_exception_tokenize:
- *           // exception handling
+ *    if (json == NULL && kzrjson_errno() != kzrjson_success) {
+ *       switch (kzrjson_errno()) {
+ *       case kzrjson_err_tokenize:
+ *           // error handling
  *           break;
- *       case kzrjson_exception_parse:
- *           // exception handling
+ *       case kzrjson_err_parse:
+ *           // error handling
  *           break;
- *       case kzrjson_exception_failed_to_allocate_memory:
- *           // exception handling
+ *       case kzrjson_err_calloc:
+ *           // error handling
  *           break;
  *       }
  *    }
  */
 typedef enum {
 	kzrjson_success = 0,
+	kzrjson_err_tokenize,
+	kzrjson_err_parse,
+	kzrjson_err_calloc,
+	kzrjson_err_not_number,
+	kzrjson_err_illegal_type,
+	kzrjson_err_object_key_not_found,
+} kzrjson_errno_t;
 
-	// Failed to tokenize input JSON text
-	kzrjson_exception_tokenize,
-
-	// Failed to parse input JSON text
-	kzrjson_exception_parse,
-
-	// Failed to allocate memory for kzrjson_t
-	kzrjson_exception_failed_to_allocate_memory,
-
-	// Failed to parse number because input number token is not parseable number
-	kzrjson_exception_not_number,
-
-	// Input kzrjson_t is illegal type
-	kzrjson_exception_illegal_type,
-
-	// The index is out of range of the array.
-	kzrjson_exception_array_index_out_of_range,
-
-	// There is no member with the specified key in the object.
-	kzrjson_exception_object_key_not_found,
-} kzrjson_exception_name;
-
-/*
- * Return whether or not an exception was caught.
- */
-bool kzrjson_catch_exception(void);
-kzrjson_exception_name kzrjson_exception(void);
-
+kzrjson_errno_t kzrjson_errno(void);
 
 /*****************************************************************************
  * Data types
  *****************************************************************************/
-
  /*
  * kzrjson_t is common type of this library.
  * All of JSON types are represented by this type.
- * You can access Internal data using various functions in the library.
- * inner is allocated to heap memory.
+ * You can get data by accessing member variables or using functions
+ * in the library..
+ * kzrjson_t is allocated to heap memory.
  */
 typedef enum {
 	kzrjson_object,
@@ -125,8 +104,6 @@ typedef struct {
  * Free kzrjson_t.
  * All memory in the kzrjson_t given as an argument is released,
  * so data retrieved from that kzrjson_t (object members, array elements, etc.) are also released.
- * 
- * [no error]
  */
 void kzrjson_free(kzrjson_t any);
 
@@ -138,9 +115,9 @@ void kzrjson_free(kzrjson_t any);
  * All information required as JSON data is copied at parse time,
  * so this library do not use json_text after parse.
  * 
- * [error] kzrjson_exception_tokenize
- * [error] kzrjson_exception_parse
- * [error] kzrjson_exception_failed_to_allocate_memory
+ * [errno] kzrjson_err_tokenize
+ * [errno] kzrjson_err_parse
+ * [errno] kzrjson_err_calloc
  */
 kzrjson_t kzrjson_parse(const char *json_text);
 
@@ -149,8 +126,6 @@ kzrjson_t kzrjson_parse(const char *json_text);
  *****************************************************************************/
 /*
  * Print kzrjson_t to stdout with indent.
- * 
- * [no error]
  */
 void kzrjson_print(kzrjson_t any);
 
@@ -161,111 +136,103 @@ void kzrjson_print(kzrjson_t any);
 /*
  * Get a member from the object by key.
  *
- * [error] kzrjson_exception_illegal_type
- * [error] kzrjson_exception_object_key_not_found
+ * [errno] kzrjson_err_illegal_type
+ * [errno] kzrjson_err_object_key_not_found
  */
 kzrjson_t kzrjson_get_member(kzrjson_t object, const char *key);
 
 /*
  * Get a key of the member.
  *
- * [error] kzrjson_exception_illegal_type
+ * [errno] kzrjson_err_illegal_type
  */
 const char *kzrjson_get_member_key(kzrjson_t member);
 
 /*
  * Get a value of the member from object by member.
  *
- * [error] kzrjson_exception_illegal_type
- * [error] kzrjson_exception_object_key_not_found
+ * [errno] kzrjson_err_illegal_type
+ * [errno] kzrjson_err_object_key_not_found
  */
 kzrjson_t kzrjson_get_value_from_key(kzrjson_t object, const char *key);
-
-/*
- * Get an element of the array by index.
- *
- * [error] kzrjson_exception_illegal_type
- * [error] kzrjson_exception_array_index_out_of_range
- */
-kzrjson_t kzrjson_get_element(kzrjson_t array, size_t index);
 
 /*****************************************************************************
  * Make JSON
  ****************************************************************************/
 /*
- * [error] kzrjson_exception_failed_to_allocate_memory
+ * [errno] kzrjson_err_calloc
  */
 kzrjson_t kzrjson_make_object(void);
 
 /*
- * [error] kzrjson_exception_failed_to_allocate_memory
+ * [errno] kzrjson_err_calloc
  */
 kzrjson_t kzrjson_make_array(void);
 
 /*
  * Add the member to the object.
  *
- * [error] kzrjson_exception_illegal_type
+ * [errno] kzrjson_err_illegal_type
  */
 bool kzrjson_object_add_member(kzrjson_t object, kzrjson_t member);
 
 /*
  * Add the element to the array.
  *
- * [error] kzrjson_exception_illegal_type
+ * [errno] kzrjson_err_illegal_type
  */
 bool kzrjson_array_add_element(kzrjson_t array, kzrjson_t element);
 
 /*
  * Make member from key and value.
  *
- * [error] kzrjson_exception_failed_to_allocate_memory
+ * [errno] kzrjson_err_calloc
  */
 kzrjson_t kzrjson_make_member(const char *key, const size_t key_length, kzrjson_t value);
 
 /*
- * [error] kzrjson_exception_failed_to_allocate_memory
+ * [errno] kzrjson_err_calloc
  */
 kzrjson_t kzrjson_make_string(const char *string, const size_t length);
 
 /*
- * [error] kzrjson_exception_failed_to_allocate_memory
+ * [errno] kzrjson_err_calloc
  */
 kzrjson_t kzrjson_make_boolean(const bool boolean);
 
 /*
- * [error] kzrjson_exception_failed_to_allocate_memory
+ * [errno] kzrjson_err_calloc
  */
-kzrjson_t kzrjson_make_null();
+kzrjson_t kzrjson_make_null(void);
 
 /*
- * [error] kzrjson_exception_not_number
- * [error] kzrjson_exception_failed_to_allocate_memory
+ * [errno] kzrjson_err_not_number
+ * [errno] kzrjson_err_calloc
  */
 kzrjson_t kzrjson_make_number_double(const double number);
 
  /*
-  * [error] kzrjson_exception_not_number
-  * [error] kzrjson_exception_failed_to_allocate_memory
+  * [errno] kzrjson_err_not_number
+  * [errno] kzrjson_err_calloc
   */
 kzrjson_t kzrjson_make_number_uint(const uint64_t number);
 
  /*
-  * [error] kzrjson_exception_not_number
-  * [error] kzrjson_exception_failed_to_allocate_memory
+  * [errno] kzrjson_err_not_number
+  * [errno] kzrjson_err_calloc
   */
 kzrjson_t kzrjson_make_number_int(const int64_t number);
 
 /*
  * Make number from exponential anotation number as string.
  *
- * [error] kzrjson_exception_not_number
- * [error] kzrjson_exception_failed_to_allocate_memory
+ * [errno] kzrjson_err_not_number
+ * [errno] kzrjson_err_calloc
  */
 kzrjson_t kzrjson_make_number_exp(const char *exp, const size_t length);
 
  /*
-  * [error] kzrjson_exception_failed_to_allocate_memory
+  * [errno] kzrjson_err_calloc
   */
 kzrjson_text_t kzrjson_to_string(kzrjson_t data);
 

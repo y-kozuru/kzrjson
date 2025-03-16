@@ -23,9 +23,9 @@ static const char *sample1 = "\
 // todo: add exception handling test.
 static void test_parse_sample1(void) {
 	kzrjson_t any = kzrjson_parse(sample1);
-	if (kzrjson_catch_exception()) {
-		puts("exception");
-		printf("%d\n", kzrjson_exception());
+	if (kzrjson_errno() != kzrjson_success) {
+		puts("error occured");
+		printf("%d\n", kzrjson_errno());
 	}
 	assert(any->type == kzrjson_object);
 	assert(any->elements_size == 1);
@@ -47,7 +47,7 @@ static void test_parse_sample1(void) {
 	kzrjson_t array = kzrjson_get_value_from_key(object, "IDs");
 	const uint64_t ids[] = {116, 943, 234, 38793};
 	for (int i = 0; i < array->elements_size; i++) {
-		kzrjson_t element = kzrjson_get_element(array, i);
+		kzrjson_t element = array->elements[i];
 		assert(element->number_uint == ids[i]);
 	}
 
@@ -82,7 +82,7 @@ static const char *sample2 = "\
 static void test_parse_sample2(void) {
 	kzrjson_t array = kzrjson_parse(sample2);
 
-	kzrjson_t element1 = kzrjson_get_element(array, 0);
+	kzrjson_t element1 = array->elements[0];
 	const double element1_latitude =
 		kzrjson_get_value_from_key(element1, "Latitude")->number_double;
 	assert(element1_latitude == 37.7668);
@@ -90,7 +90,7 @@ static void test_parse_sample2(void) {
 		kzrjson_get_value_from_key(element1, "Longitude")->number_double;
 	assert(element1_longitude == -122.3959);
 
-	kzrjson_t element2 = kzrjson_get_element(array, 1);
+	kzrjson_t element2 = array->elements[1];
 	const char *element2_latitude =
 		kzrjson_get_value_from_key(element2, "Latitude")->string;
 	assert(strcmp(element2_latitude, "37.371991") == 0);
@@ -102,8 +102,8 @@ static void test_parse_sample2(void) {
 static const char *sample3 = "[-1.3e+5, 6e-1]";
 static void test_parse_sample3(void) {
 	kzrjson_t array = kzrjson_parse(sample3);
-	assert(kzrjson_get_element(array, 0)->number_double == -130000);
-	assert(kzrjson_get_element(array, 1)->number_double == 0.6);
+	assert(array->elements[0]->number_double == -130000);
+	assert(array->elements[1]->number_double == 0.6);
 	kzrjson_free(array);
 	puts("test_parse_sample3 done");
 }
@@ -138,12 +138,12 @@ static void test_make_json(void) {
 	kzrjson_array_add_element(array, kzrjson_make_string("sample", strlen("sample")));
 	kzrjson_array_add_element(array, kzrjson_make_null());
 	assert(array->elements_size == 6);
-	assert(kzrjson_get_element(array, 0)->number_int == -100);
-	assert(kzrjson_get_element(array, 1)->number_uint == 0);
-	assert(kzrjson_get_element(array, 2)->number_double == 0.5);
-	assert(kzrjson_get_element(array, 3)->number_double == 1.3e5);
-	assert(strcmp(kzrjson_get_element(array, 4)->string, "sample") == 0);
-	assert(kzrjson_get_element(array, 5)->type == kzrjson_null);
+	assert(array->elements[0]->number_int == -100);
+	assert(array->elements[1]->number_uint == 0);
+	assert(array->elements[2]->number_double == 0.5);
+	assert(array->elements[3]->number_double == 1.3e5);
+	assert(strcmp(array->elements[4]->string, "sample") == 0);
+	assert(array->elements[5]->type == kzrjson_null);
 
 	kzrjson_object_add_member(object,
 		kzrjson_make_member("array1", strlen("array1"), array)
