@@ -93,4 +93,3 @@ int main(void) {
 
 # todo
 * Correctly handle escape characters in string
-* Implement kzrjson_exception_what.
